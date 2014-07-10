@@ -10,11 +10,16 @@ add_definitions(-std=c++0x)
 set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS}")
 
 set(sources 
-   src/pademw.cpp 
-   src/controller.cpp)
+   src/main.cpp
+   src/controller.cpp
+   src/pademw.cpp
+   tests/pademwTests.cpp)
+   
 add_executable(test ${sources})
 target_link_libraries(test pthread)
 target_link_libraries(test gmock)
 target_link_libraries(test gtest)
 target_link_libraries(test event)
+target_link_libraries(test boost_system)
+
 target_link_libraries(test ${ROOTLIBS})
