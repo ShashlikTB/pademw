@@ -14,13 +14,13 @@ struct padePacket {
   unsigned int pktCount; 
   unsigned int channel; 
   unsigned int hitCount; 
-  std::array<unsigned char, 260> waveform; 
+  std::vector<unsigned char> waveform; 
 };
 
 class padeUDPServer { 
   udp::socket sock_; 
   udp::endpoint remote_endpoint_; 
-  std::array<char, 270> recv_; 
+  std::array<unsigned char, 270> recv_; 
   bool finishedFlag_; 
   unsigned int packetCount_; 
   std::vector<struct padePacket> packets; 
@@ -33,10 +33,13 @@ class padeUDPServer {
     receive_loop(); 
   }
 
+  struct padePacket parsePadePacket(const std::array<unsigned char, 270> &array); 
+
   void receive_loop(); 
   void handle_receive(const boost::system::error_code &ec, std::size_t bytes); 
   bool finished() { return finishedFlag_; }; 
   bool send_bytes(const TString &msg); 
+  void setpacketCount(unsigned int count) { packetCount_ = count; }; 
   unsigned int packetCount() { return packetCount_; }; 
 
 }; 

@@ -126,8 +126,20 @@ TEST_F(ListenerTesting, TestListenerSocket) {
 }
 
 TEST_F(ListenerTesting, TestPadePackets) { 
+  std::cout << "Test Packet Count" << std::endl; 
   boost::asio::io_service mainThreadService; 
   padeUDPServer padeServer(mainThreadService, port); 
+  padeServer.setpacketCount(231); 
+  mainThreadService.run(); 
+  ASSERT_TRUE(padeServer.packetCount() > 0); 
+}
+
+
+
+TEST_F(ListenerTesting, TestParsingPackets) { 
+  boost::asio::io_service mainThreadService; 
+  padeUDPServer padeServer(mainThreadService, port); 
+  padeServer.setpacketCount(231); 
   mainThreadService.run(); 
   ASSERT_TRUE(padeServer.packetCount() > 0); 
 }
