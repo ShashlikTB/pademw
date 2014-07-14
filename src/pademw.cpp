@@ -55,23 +55,18 @@ struct padePacket padeUDPServer::parsePadePacket(const std::array<unsigned char,
   pkt.channel = array[6]; 
   pkt.hitCount = array[7] << 8 | array[8]; 
   if (array.size() > 70) { 
-    pkt.waveform.reserve(260); 
-    auto it = array.begin(); 
-    for (unsigned int i = 0; i < 10; i++) { 
-      ++it; 
+    pkt.waveform.reserve(60); 
+    int adc = 0; 
+    for (unsigned int i = 0; i < 60; i++ ) { 
+      //ADC position calculation pulled from Paul's C# Code 
+      adc = array[17+4*i] * 256 + array[16+4*i]; 
+      pkt.waveform.push_back(adc); 
+      adc = array[15+4*i]*256 + array[14+4*i]; 
+      pkt.waveform.push_back(adc); 
+      adc = 0; 
     }
-    int tmp; 
-    while (it != array.end()) { 
-      ++it; 
-      tmp = *it << 8; 
-      --it; 
-      tmp |= *it; 
-      ++it; 
-      ++it; 
-      pkt.waveform.push_back(tmp); 
-    }
-      
-
+    pkt.waveform.shrink_to_fit(); 
+    std::cout << "Waveform Count:" << pkt.waveform.size() << std::endl; 
   }
   return pkt; 
 }

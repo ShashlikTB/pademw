@@ -7,6 +7,7 @@
 #include "TString.h"
 #include <string>
 using boost::asio::ip::udp; 
+using boost::asio::ip::tcp; 
 using std::shared_ptr; 
 
 
@@ -16,6 +17,8 @@ struct padePacket {
   unsigned int hitCount; 
   std::vector<int> waveform; 
 };
+
+
 
 class padeUDPServer { 
   udp::socket sock_; 
@@ -45,7 +48,46 @@ class padeUDPServer {
 
 }; 
 
+class padeControlClient {
+  tcp::socket sock_; 
+  tcp::resolver resolver_; 
+  tcp::resolver::query query_; 
+  std::array<char, 25> recv_; 
+  
+  void rwloop() { 
+    boost::system::error_code ec; 
+    size_t len = sock_.read_some(boost::asio::buffer(recv_), ec); 
+    if (ec == boost::asio::error::eof) { 
+      std::cout << "Lost connection." << std::endl;
+      return; 
+    }
+    else if(ec) { 
+      throw boost::system::system_error(ec); 
+    }
 
+    std::cout << "Data from server:" << std::string(recv_.data()); 
+    recv_.fill(0); 
+    std::string msg("Greetings client!\n"); 
+    boost::asio::write(sock_, boost::asio::buffer(msg), ec); 
+    rwloop(); 
+
+
+  }
+
+ public:
+ padeControlClient(boost::asio::io_service &io_service, const std::string &address, const std::string &service) : sock_(io_service), resolver_(io_service), query_(address, service) { 
+
+  }
+
+  bool connect() { 
+    tcp::resolver::iterator endpoint_it  = resolver_.resolve(query_); 
+    boost::asio::connect(sock_, endpoint_it); 
+    rwloop(); 
+    return true; 
+  }
+  
+  
+}; 
 
 
 #endif 
