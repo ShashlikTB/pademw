@@ -132,16 +132,20 @@ TEST_F(ListenerTesting, TestPadePackets) {
   padeServer.setpacketCount(231); 
   mainThreadService.run(); 
   ASSERT_TRUE(padeServer.packetCount() > 0); 
+  std::vector<struct padePacket> *packets = padeServer.getPackets(); 
+  for (std::vector<struct padePacket>::iterator it = packets->begin(); it != packets->end(); ++it) { 
+    std::cout << "Packet Channel: " << (*it).channel << std::endl; 
+    std::vector<int > &waveform = ((*it).waveform); 
+    std::cout << "Packet Data:" << std::endl; 
+    for (auto vt = waveform.begin(); vt != waveform.end(); ++vt) { 
+      std::cout << std::hex << *vt << " "; 
+    }
+    std::cout << std::endl; 
+  }
+
 }
 
 
 
-TEST_F(ListenerTesting, TestParsingPackets) { 
-  boost::asio::io_service mainThreadService; 
-  padeUDPServer padeServer(mainThreadService, port); 
-  padeServer.setpacketCount(231); 
-  mainThreadService.run(); 
-  ASSERT_TRUE(padeServer.packetCount() > 0); 
-}
 
 

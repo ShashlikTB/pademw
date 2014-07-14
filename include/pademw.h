@@ -14,7 +14,7 @@ struct padePacket {
   unsigned int pktCount; 
   unsigned int channel; 
   unsigned int hitCount; 
-  std::vector<unsigned char> waveform; 
+  std::vector<int> waveform; 
 };
 
 class padeUDPServer { 
@@ -41,6 +41,7 @@ class padeUDPServer {
   bool send_bytes(const TString &msg); 
   void setpacketCount(unsigned int count) { packetCount_ = count; }; 
   unsigned int packetCount() { return packetCount_; }; 
+  std::vector<struct padePacket> *getPackets() { return &packets; }; 
 
 }; 
 

@@ -33,8 +33,9 @@ void padeUDPServer::handle_receive(const boost::system::error_code &ec, std::siz
       packetCount_++; 
       packets.push_back(parsePadePacket(recv_)); 
       if (packets.back().pktCount != packetCount_) { 
-	std::cout << std::dec << packets.back().pktCount << "Ext Count " << packetCount_ << " Internal, Desynced!" << std::endl; 
+	std::cout << std::dec << packets.back().pktCount << " Ext Count " << packetCount_ << " Internal, Desynced!" << std::endl; 
       }
+      std::cout << std::dec << "Packet Count: " << packets.back().pktCount << " Channel: " << packets.back().channel << std::endl; 
       for (auto& s: recv_) 
 	std::cout << std::hex << (unsigned int) s << " "; 
 
@@ -55,9 +56,22 @@ struct padePacket padeUDPServer::parsePadePacket(const std::array<unsigned char,
   pkt.hitCount = array[7] << 8 | array[8]; 
   if (array.size() > 70) { 
     pkt.waveform.reserve(260); 
-    for (unsigned int i = 10; i < array.size(); i++) { 
-      pkt.waveform.push_back(array[i]); 
+    auto it = array.begin(); 
+    for (unsigned int i = 0; i < 10; i++) { 
+      ++it; 
     }
+    int tmp; 
+    while (it != array.end()) { 
+      ++it; 
+      tmp = *it << 8; 
+      --it; 
+      tmp |= *it; 
+      ++it; 
+      ++it; 
+      pkt.waveform.push_back(tmp); 
+    }
+      
+
   }
   return pkt; 
 }
