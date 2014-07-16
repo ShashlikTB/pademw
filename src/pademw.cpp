@@ -40,6 +40,13 @@ void padeUDPServer::handle_receive(const boost::system::error_code &ec, std::siz
 	std::cout << std::hex << (unsigned int) s << " "; 
 
       std::cout << std::endl; 
+      if (packets.size() >= 32 && packets.back().channel == 31) { 
+	
+      }
+      else { 
+	// Lost a packet / other problem somewhere
+      }
+	
     }
   
     recv_.fill(0); 

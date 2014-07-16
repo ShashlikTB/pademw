@@ -1,0 +1,31 @@
+1 Master 37 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+3 Slave 37 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+
+
+
+3 Slave 38 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+3 Slave 39 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+3 Master 37 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+
+
+3 Master 37 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F 3 Slave 39 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F 3 Slave 38 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+
+3 Master 37 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F Slave 39 3 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F 
+
+Slave 38 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Current trig= 000A PADEtemp= 001C SIBtemp= 007F
+
+2 Master 37 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Currenttrig= 000A PADEtemp= 001C SIBtemp= 007F Slave 39 3 Stat= 7013 Arm= 0000 Trig_in_mem= 000B Memcode= 1160 Currenttrig= 000A PADEtemp= 001C SIBtemp= 007F 
+
+
+Good Result looks like: 
+*** starting spill num 1 *** at 4/20/2014 8:52:44 AM WC says: num trig= 0060 time = 08:53:29  14/04/20
+*** spill status 0 Master 112 st=0111 ARM=0000 t in mem=0060 err reg=1C00 last trig=005E Ptemp=0019 Stemp=0032  ***
+*** spill status 1 Slave 113 st=8551 ARM=0000 t in mem=0060 err reg=1C00 last trig=005E Ptemp=0018 Stemp=0032  ***
+*** spill status 2 Slave 115 st=8551 ARM=0000 t in mem=0060 err reg=1C00 last trig=005E Ptemp=0019 Stemp=0030  ***
+*** spill status 3 Slave 116 st=8551 ARM=0000 t in mem=0060 err reg=1C00 last trig=005E Ptemp=0026 Stemp=0044  ***
+
+
+To Generate above use something like: "2 Master 112 0111 0000 0060 1C00 005E 0019 0032 Slave 113 8551 0000 0060 1C00 005E 0018 0032\r\n"
+
+It may have changed in more recent version of the code, not sure
+
