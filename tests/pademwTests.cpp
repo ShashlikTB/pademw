@@ -1,7 +1,7 @@
 #include "gmock/gmock.h"    
 
-#include "pademw.h"
-#include "controller.h"
+#include "padeUDPServer.h"
+#include "padeClient.h"
 
 
 using namespace std; 

@@ -10,13 +10,16 @@ add_definitions(-std=c++0x -ggdb)
 set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS}")
 
 set(testsources 
-   src/controller.cpp
    src/main.cpp
-   src/pademw.cpp
+   src/padeBoard.cpp
+   src/padeClient.cpp
+   src/padeUDPServer.cpp
    tests/pademwTests.cpp)
    
 set(standalonesources
-	src/pademw.cpp
+	src/padeBoard.cpp
+	src/padeClient.cpp
+	src/padeUDPServer.cpp
 	src/standalone.cpp)	
 
    
@@ -28,6 +31,7 @@ target_link_libraries(test gtest)
 target_link_libraries(test event)
 target_link_libraries(test boost_system)
 target_link_libraries(test boost_thread)			   
+target_link_libraries(test boost_regex)			   
 
 target_link_libraries(test ${ROOTLIBS})
 

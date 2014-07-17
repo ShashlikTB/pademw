@@ -1,164 +1,32 @@
-#ifndef  _PADEMW_H
-#define _PADEMW_H
+#include "padeClient.h"
 
-#include <memory> 
-#include <cstdlib>
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/regex.hpp>
-#include <boost/regex.hpp>
-#include "TString.h"
-#include <string>
-#include <functional>
-using boost::asio::ip::udp; 
-using boost::asio::ip::tcp; 
-using std::shared_ptr; 
-
-
-struct padePacket { 
-  unsigned int pktCount; 
-  unsigned int channel; 
-  unsigned int hitCount; 
-  std::vector<int> waveform; 
-};
-
-
-class padeBoard { 
-  unsigned int boardid_; 
-  unsigned int ptemp_; 
-  unsigned int stemp_; 
-  unsigned int triggerInMem_; 
-  unsigned int lastTrigger_; 
-  unsigned int statusReg_; 
-  unsigned int errorReg_; 
-  bool armed_;   
-  bool master_; 
-
- public: 
-  padeBoard(const std::string &msg) {
-
-    std::vector <std::string> split; 
-    boost::algorithm::split(split, msg, boost::algorithm::is_any_of(" ")); 
-
-
-    std::vector<std::string>::iterator it = split.begin(); 
-    if (boost::algorithm::contains(msg, "Master")) {
-      //Master has 2 extra entries
-      it += 2; 
-      master_ = true; 
-    }
-    // Layout should be as follows 
-    // # BoardId statusRegister Armed #Triggers Error Register LastTrigger PadeTemp SipmTemp
-      
-    boardid_ = strtol((*it).data(), NULL, 16); 
-      ++it; 
-      statusReg_ = strtol((*it).data(), NULL, 16); 
-      ++it; 
-      long int tmp = strtol((*it).data(), NULL, 16); 
-      if (tmp == 1)
-	armed_ = true; 
-      ++it; 
-      triggerInMem_ = strtol((*it).data(), NULL, 16); 
-      ++it; 
-      errorReg_ = strtol((*it).data(), NULL, 16); 
-      ++it; 
-      lastTrigger_ = strtol((*it).data(), NULL, 16); 
-      ++it; 
-      ptemp_ = strtol((*it).data(), NULL, 16); 
-      ++it; 
-      stemp_ = strtol((*it).data(), NULL, 16); 
-
-  }
-
-
-
-  
-  unsigned int id() { return boardid_; }; 
-  unsigned int padeTemperature() { return ptemp_; }; 
-  unsigned int sipmTemperature() { return stemp_; }; 
-  unsigned int availableTriggers() { return triggerInMem_; }; 
-  unsigned int lastTrigger() { return lastTrigger_; }; 
-  unsigned int statusRegister() { return statusReg_; };
-  unsigned int errorRegister() { return errorReg_; }; 
-  bool armed() { return armed_; };
-  bool isMaster() { return master_; }; 
-
-
-
-}; 
-
-
-class padeUDPServer { 
-
-  udp::socket sock_; 
-  udp::endpoint remote_endpoint_; 
-  std::array<unsigned char, 270> recv_; 
-  bool finishedFlag_; 
-  unsigned int packetCount_; 
-  std::vector<struct padePacket> packets; 
-
-
- public: 
- padeUDPServer(boost::asio::io_service& io_service, unsigned short port) : sock_(io_service, udp::endpoint(udp::v4(), port)) { 
-    finishedFlag_ = false; 
-    packetCount_ = 0; 
-    recv_.fill(0); 
-    receive_loop(); 
-  }
-
-  struct padePacket parsePadePacket(const std::array<unsigned char, 270> &array); 
-
-  void receive_loop(); 
-  void handle_receive(const boost::system::error_code &ec, std::size_t bytes); 
-  bool finished() { return finishedFlag_; }; 
-  bool send_bytes(const TString &msg); 
-  void setpacketCount(unsigned int count) { packetCount_ = count; }; 
-  unsigned int packetCount() { return packetCount_; }; 
-  std::vector < struct padePacket > *getPackets() { return &packets; }; 
-
-}; 
-
-class padeControlClient {
-
-  bool armed_; 
-  bool active_; 
-  tcp::socket sock_; 
-  tcp::resolver resolver_; 
-  tcp::resolver::query query_; 
-  std::array<char, 512> recv_; 
-  std::map<std::string, std::function< void() > > callbacks; 
-
-  std::map<unsigned int, shared_ptr<padeBoard> > padeBoards; 
-
-  
-  void armCB() { 
+void padeControlClient::armCB() { 
     std::cout << "Arming" << std::endl; 
     armed_ = true; 
   }
 
-  void disarmCB() { 
+  void padeControlClient::disarmCB() { 
     std::cout << "Disarming" << std::endl; 
     armed_ = false; 
   }
    
-  void statusCB() { 
+  void padeControlClient::statusCB() { 
     std::cout << "Getting Status" << std::endl; 
   }
 
-  void trigCB() { 
+  void padeControlClient::trigCB() { 
     std::cout << "Triggering" << std::endl; 
   }
 
-  void clearCB() { 
+  void padeControlClient::clearCB() { 
     active_ = true; 
   }
 
-  void readCB() { 
+  void padeControlClient::readCB() { 
     std::cout << "UDP Packets" << std::endl; 
   }
 
-  void statusLoop() { 
+  void padeControlClient::statusLoop() { 
     bool finished = false; 
     std::stringstream statusMsg; 
     while (!finished) { 
@@ -209,7 +77,7 @@ class padeControlClient {
     }
   }
 
-  void recvLoop() { 
+  void padeControlClient::recvLoop() { 
     boost::system::error_code ec; 
     size_t len = sock_.read_some(boost::asio::buffer(recv_), ec); 
     if (ec == boost::asio::error::eof) { 
@@ -236,9 +104,7 @@ class padeControlClient {
 
   }
 
- public:
-
- padeControlClient(boost::asio::io_service &io_service, const std::string &address, const std::string &service) : sock_(io_service), resolver_(io_service), query_(address, service) { 
+padeControlClient::padeControlClient(boost::asio::io_service &io_service, const std::string &address, const std::string &service) : sock_(io_service), resolver_(io_service), query_(address, service) { 
     callbacks[std::string("arm")] = std::bind(&padeControlClient::armCB, this); 
     callbacks[std::string("disarm")] = std::bind(&padeControlClient::disarmCB, this); 
     callbacks[std::string("clear")] = std::bind(&padeControlClient::clearCB, this); 
@@ -247,72 +113,62 @@ class padeControlClient {
     active_ = false; 
   }
 
-  bool armed() { return armed_; };
 
-  bool active() { return active_; }; 
-
-  bool connect() { 
+  bool padeControlClient::connect() { 
     tcp::resolver::iterator endpoint_it  = resolver_.resolve(query_); 
     boost::asio::connect(sock_, endpoint_it); 
     return true; 
   }
 
-  void disconnect() { 
+  void padeControlClient::disconnect() { 
     sock_.close(); 
     active_ = false; 
   }
 
-  void arm() { 
+  void padeControlClient::arm() { 
     boost::system::error_code ec; 
     boost::asio::write(sock_, boost::asio::buffer(std::string("arm\r\n")), ec); 
     recvLoop(); 
 
   }
 
-  void disarm() { 
+  void padeControlClient::disarm() { 
     boost::system::error_code ec; 
     boost::asio::write(sock_, boost::asio::buffer(std::string("disarm\r\n")), ec); 
 
   }
 
-  void clear() { 
+  void padeControlClient::clear() { 
     boost::system::error_code ec; 
     boost::asio::write(sock_, boost::asio::buffer(std::string("clear\r\n")), ec); 
     recvLoop(); 
   }
     
-  void trig() { 
+  void padeControlClient::trig() { 
 
   }
 
-  void read() { 
+  void padeControlClient::read() { 
     boost::system::error_code ec; 
     boost::asio::write(sock_, boost::asio::buffer(std::string("read 1\r\n")), ec); 
   }
 
-  void status() { 
+  void padeControlClient::status() { 
     boost::system::error_code ec; 
     boost::asio::write(sock_, boost::asio::buffer(std::string("status\r\n")), ec); 
     statusLoop(); 
   }
 
-  shared_ptr<padeBoard> getBoard( unsigned int id ) { 
+  shared_ptr<padeBoard> padeControlClient::getBoard( unsigned int id ) { 
     if  (padeBoards.count(id) > 0)
       return padeBoards[id]; 
     return shared_ptr<padeBoard>(); 
   }
 
-  std::vector<unsigned int> getIDs() { 
+  std::vector<unsigned int> padeControlClient::getIDs() { 
     std::vector<unsigned int> ids; 
     for ( auto board : padeBoards ) { 
       ids.push_back(board.first); 
     }
     return ids; 
   }
-
-}; 
-  
-  
-
-
-#endif 
