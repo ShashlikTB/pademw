@@ -9,13 +9,19 @@ link_directories($ENV{GMOCK_HOME}/mybuild $ENV{GMOCK_HOME}/gtest/mybuild ${ROOTL
 add_definitions(-std=c++0x -ggdb)
 set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS}")
 
-set(sources 
-   src/main.cpp
+set(testsources 
    src/controller.cpp
+   src/main.cpp
    src/pademw.cpp
    tests/pademwTests.cpp)
    
-add_executable(test ${sources})
+set(standalonesources
+	src/pademw.cpp
+	src/standalone.cpp)	
+
+   
+add_executable(test ${testsources} )
+
 target_link_libraries(test pthread)
 target_link_libraries(test gmock)
 target_link_libraries(test gtest)
@@ -24,3 +30,11 @@ target_link_libraries(test boost_system)
 target_link_libraries(test boost_thread)			   
 
 target_link_libraries(test ${ROOTLIBS})
+
+add_executable(standalone ${standalonesources} )
+target_link_libraries(standalone pthread)
+target_link_libraries(standalone event)
+target_link_libraries(standalone boost_system)
+target_link_libraries(standalone boost_thread)			   
+target_link_libraries(standalone boost_regex)			   
+target_link_libraries(standalone ${ROOTLIBS})

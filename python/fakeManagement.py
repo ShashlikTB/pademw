@@ -88,6 +88,7 @@ class serverResponder:
 
 
     def lookupAction(self, msg): 
+        print "action: %s" % msg.strip().split(' ')[0]
         return self.actions[msg.strip().split(' ')[0]](msg)
 
 
@@ -96,12 +97,16 @@ class serverResponder:
 
 class padeBoard: 
 
+    trigger = 0
     def __init__(self, padeType): 
         self.stat = hex(random.randint(0,9999))[2:]
-        self.bid = random.randint(0,300)
+        self.bid = random.randint(10,100)
         self.type = padeType
         self.arm = hex(0)[2:]
-        self.trigger = hex(random.randint(0,1000))[2:]
+        if (padeType is 'Master'):
+            # Want all of the triggers to match
+            padeBoard.trigger = hex(random.randint(0,1000))[2:]
+
         self.errReg = hex(random.randint(0,9999))[2:]
         self.lastTrig = hex(random.randint(0,9999))[2:]
         self.ptemp = hex(random.randint(0,9999))[2:]
@@ -111,7 +116,7 @@ class padeBoard:
 
     def status(self): 
         return "%s %s %s %s %s %s %s %s %s" % (self.type, self.bid, self.stat, self.arm,
-                                            self.trigger, self.errReg, self.lastTrig, 
+                                            padeBoard.trigger, self.errReg, self.lastTrig, 
                                             self.ptemp, self.stemp)
 
 

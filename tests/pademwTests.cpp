@@ -87,19 +87,44 @@ public:
 
 };  
 
+class ClientTesting: public testing::Test { 
+
+public:
+  std::string address; 
+  unsigned int port; 
+  boost::asio::io_service mainThreadService; 
+  std::string portString;
+
+  virtual void SetUp() { 
+
+
+    address = "127.0.0.1"; 
+    port = 23; 
+    portString = TString::UItoa(port, 10); 
+
+
+  }
+
+  virtual void TearDown() { 
+
+    boost::posix_time::seconds wait(0.25); 
+    boost::this_thread::sleep(wait); 
+
+  }
+}; 
+
+
 class EventLoopTesting: public testing::Test { 
 public:
   TString address; 
   unsigned int port;
 
-  udpTestClient *client; 
+
   boost::asio::io_service mainThreadService; 
   virtual void SetUp() { 
     address = "127.0.0.1"; 
     port = 21331; 
-
-
-    client = new udpTestClient(TString(address), port, mainThreadService); 
+    shared_ptr<udpTestClient> client(new udpTestClient(TString(address), port, mainThreadService)); 
 
 
   }
@@ -107,7 +132,7 @@ public:
   virtual void TearDown() { 
     mainThreadService.stop(); 
 
-    delete client; 
+
 
     boost::posix_time::seconds wait(0.25); 
     boost::this_thread::sleep(wait); 
@@ -149,7 +174,7 @@ TEST_F(ListenerTesting, TestPadePackets) {
 
 
 TEST_F(ListenerTesting, TestClient) { 
-  port = 1025; 
+  port = 23; 
   boost::asio::io_service mainThreadService; 
   std::string portString(TString::UItoa(port, 10)); 
   padeControlClient client(mainThreadService, std::string(address), portString); 
@@ -160,4 +185,12 @@ TEST_F(ListenerTesting, TestClient) {
 
 
 
+TEST_F(ClientTesting, padeClientArming) { 
+  padeControlClient client(mainThreadService, std::string(address), portString); 
+  if (client.connect()) { 
+    client.arm(); 
+    ASSERT_TRUE(client.armed()); 
+  }
+
+}
 
