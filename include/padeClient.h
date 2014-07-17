@@ -25,6 +25,7 @@ class padeControlClient {
 
   bool armed_; 
   bool active_; 
+  bool readReady_; 
   tcp::socket sock_; 
   tcp::resolver resolver_; 
   tcp::resolver::query query_; 
@@ -51,6 +52,7 @@ class padeControlClient {
 
   bool armed() { return armed_; };
   bool active() { return active_; }; 
+  bool readReady() { return readReady_; }; 
 
   bool connect();
   void disconnect();

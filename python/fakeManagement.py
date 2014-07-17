@@ -9,8 +9,8 @@ import random
 def generatePadePacket(count, channel): 
     arr = bytearray(266)
     arr[0] = 1
-    arr[4] = count & 0x00FF
-    arr[5] = (count & 0xFF00)>> 8
+    arr[4] = (count & 0xFF00) >> 8
+    arr[5] = (count & 0x00FF)
     arr[6] = channel
     arr[7] = 1
     arr[8] = 1
@@ -21,11 +21,16 @@ def generatePadePacket(count, channel):
     return arr
 
 
+def generateEndPacket(count): 
+    endPacket = bytearray('\x00N%\x00\x04A\x124Vx%\x00\x00\x00\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x00\x00 \x08\x00\x00\xa2\x00\x00\x00\x87eC!\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+    endPacket[4] = (count & 0xFF00) >> 8
+    endPacket[5] = (count & 0x00FF)
 
+    return endPacket
 
 class serverResponder: 
     
-    endPacket = '\x00N%\x00\x04A\x124Vx%\x00\x00\x00\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x00\x00 \x08\x00\x00\xa2\x00\x00\x00\x87eC!\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+
 
 
     def __init__(self, boards): 
@@ -78,11 +83,12 @@ class serverResponder:
             for i in range(0, 32): 
                 pack = generatePadePacket(self.packetCount, channel)
                 print self.packetCount
-                print pack
+#                print pack
                 self.packetCount += 1
                 self.udpSocket.sendall(pack)
-                time.sleep(0.009)
-            self.udpSocket.send(self.endPacket)
+                time.sleep(0.0001)
+            self.udpSocket.send(generateEndPacket(self.packetCount))
+            self.packetCount += 1
 
 
 
@@ -139,6 +145,7 @@ def server(conn, addr):
                 action = responder.lookupAction(data)+'\r\n'
                 conn.sendall(action)
                 if action.find('read') != -1: 
+                    conn.sendall('read\r\n')
                     responder.sendfakePadePackets()
 
         except Exception as e: 

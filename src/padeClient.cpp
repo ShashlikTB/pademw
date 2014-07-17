@@ -10,10 +10,6 @@ void padeControlClient::armCB() {
     armed_ = false; 
   }
    
-  void padeControlClient::statusCB() { 
-    std::cout << "Getting Status" << std::endl; 
-  }
-
   void padeControlClient::trigCB() { 
     std::cout << "Triggering" << std::endl; 
   }
@@ -24,7 +20,10 @@ void padeControlClient::armCB() {
 
   void padeControlClient::readCB() { 
     std::cout << "UDP Packets" << std::endl; 
+    readReady_ = true; 
+    
   }
+
 
   void padeControlClient::statusLoop() { 
     bool finished = false; 
@@ -92,10 +91,8 @@ void padeControlClient::armCB() {
     boost::algorithm::trim(key); 
     recv_.fill(0); 
     if (callbacks.count(key) > 0) {
-      //      std::function< void() > fn = callbacks[std::string(data.Strip().Data())]; 
+      callbacks[key](); 
 
-      auto fn = callbacks[key]; 
-      fn(); 
     }
     else 
       std::cout << "Couldn't find action:" << key << std::endl; 
@@ -111,6 +108,7 @@ padeControlClient::padeControlClient(boost::asio::io_service &io_service, const 
     callbacks[std::string("trig")] = std::bind(&padeControlClient::trigCB, this); 
     callbacks[std::string("read")] = std::bind(&padeControlClient::readCB, this); 
     active_ = false; 
+    readReady_ = false; 
   }
 
 
@@ -151,6 +149,7 @@ padeControlClient::padeControlClient(boost::asio::io_service &io_service, const 
   void padeControlClient::read() { 
     boost::system::error_code ec; 
     boost::asio::write(sock_, boost::asio::buffer(std::string("read 1\r\n")), ec); 
+    recvLoop(); 
   }
 
   void padeControlClient::status() { 
@@ -162,7 +161,8 @@ padeControlClient::padeControlClient(boost::asio::io_service &io_service, const 
   shared_ptr<padeBoard> padeControlClient::getBoard( unsigned int id ) { 
     if  (padeBoards.count(id) > 0)
       return padeBoards[id]; 
-    return shared_ptr<padeBoard>(); 
+    shared_ptr<padeBoard> nBoard; 
+    return nBoard; 
   }
 
   std::vector<unsigned int> padeControlClient::getIDs() { 

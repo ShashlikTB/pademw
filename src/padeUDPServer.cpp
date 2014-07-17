@@ -33,7 +33,6 @@ void padeUDPServer::handle_receive(const boost::system::error_code &ec, std::siz
     }
     else { 
       //Pade Packet
-      packetCount_++; 
       packets.push_back(parsePadePacket(recv_)); 
       if (packets.back().pktCount != packetCount_) { 
 	std::cout << std::dec << packets.back().pktCount << " Ext Count " << packetCount_ << " Internal, Desynced!" << std::endl; 
@@ -41,7 +40,7 @@ void padeUDPServer::handle_receive(const boost::system::error_code &ec, std::siz
       std::cout << std::dec << "Packet Count: " << packets.back().pktCount << " Channel: " << packets.back().channel << std::endl; 
       for (auto& s: recv_) 
 	std::cout << std::hex << (unsigned int) s << " "; 
-
+      packetCount_++; 
       std::cout << std::endl; 
       if (packets.size() >= 32 && packets.back().channel == 31) { 
 	

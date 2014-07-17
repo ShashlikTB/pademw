@@ -23,9 +23,19 @@ int main(int argc, char *argv[]) {
       }
     client.status(); 
     std::vector <unsigned int> keys = client.getIDs(); 
+    std::cout << "Control software reports the following ids:" << std::endl; 
     for (auto key : keys) { 
-      std::cout << std::dec << "Board ids:" << client.getBoard(key)->id() << " Triggers: " << client.getBoard(key)->availableTriggers() << std::endl; 
+      std::cout << std::dec << client.getBoard(key)->id() << " Triggers: " << client.getBoard(key)->availableTriggers() << std::endl; 
     }
+    
+    padeUDPServer server(mainThreadService, udpPort); 
+    std::cout << "Attempting to read the triggers from the server" << std::endl; 
+    client.read(); 
+    if (client.readReady()) { 
+      std::cout << "starting to listen for packets" << std::endl; 
+      server.receive_loop(); 
+    }
+    mainThreadService.run(); 
 
   }
   catch (const boost::exception &e) { 
