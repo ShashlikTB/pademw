@@ -1,7 +1,7 @@
 #include "padeUDPServer.h"
 #include "padeClient.h"
-
-
+#include "TBEvent.h"
+#include "TTree.h"
 
 int main(int argc, char *argv[]) { 
 
@@ -36,6 +36,25 @@ int main(int argc, char *argv[]) {
       server.receive_loop(); 
     }
     mainThreadService.run(); 
+    std::cout << "After main thread" << std::endl; 
+    std::vector < struct event > &events = server.Events(); 
+    std::cout << "# Events:" << events.size() << std::endl; 
+    for (auto it : events) { 
+      for (auto packet : it.eventPackets) {
+	std::cout << packet.channel << std::endl; 
+      }
+    }
+
+    shared_ptr<padeBoard> brd; 
+    for (auto key : keys) { 
+      if (client.getBoard(key)->isMaster())
+	brd = client.getBoard(key); 
+    }
+    TTree *tree = new TTree("t1041", "T1041"); 
+    TBEvent tbevent; 
+    TBSpill tbspill; 
+    
+	
 
   }
   catch (const boost::exception &e) { 

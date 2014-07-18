@@ -6,54 +6,75 @@
 
 
 void padeUDPServer::receive_loop() { 
-  sock_.async_receive_from(
-        boost::asio::buffer(recv_), remote_endpoint_,
-        boost::bind(&padeUDPServer::handle_receive, this,
-          boost::asio::placeholders::error,
-          boost::asio::placeholders::bytes_transferred));
+  std::cout << "Receive Loop" << std::endl; 
+  if (!finishedFlag_) { 
+    sock_.async_receive_from(
+			     boost::asio::buffer(recv_), remote_endpoint_,
+			     boost::bind(&padeUDPServer::handle_receive, this,
+					 boost::asio::placeholders::error,
+					 boost::asio::placeholders::bytes_transferred));
+  }
 
-    }
+
+}
+
+
+void padeUDPServer::padedataPacketHandler() { 
+  packets.push_back(parsePadePacket(recv_)); 
+  if (packets.back().pktCount != packetCount_) { 
+    std::cout << std::dec << packets.back().pktCount << " Ext Count " << packetCount_ << " Internal, Desynced!" << std::endl; 
+    std::cout << "Attempting resync on next event boundary" << std::endl; 
+  }
+  std::cout << std::dec << "Packet Count: " << packets.back().pktCount << " Channel: " << packets.back().channel << std::endl; 
+      /* for (auto& s: recv_) 
+	std::cout << std::hex << (unsigned int) s << " "; 
+	std::cout << std::endl; */
+  packetCount_++; 
+
+
+
+
+}
+
+
+void padeUDPServer::endPacketHandler() { 
+  packetCount_++; 
+  //Add event handler stuff
+   event evt(packets); 
+   events.push_back(evt); 
+   packets.clear(); 
+   finishedFlag_ = true; 
+}
+
+void padeUDPServer::unknownPacketHandler() { 
+  std::vector<char> charStyle; 
+  for (unsigned int i = 0; i < recv_.size(); i++) { 
+    charStyle.push_back(recv_[i]); 
+  }
+  TString str(charStyle.data()); 
+  std::cout << "Message: " << str; 
+  if (str.Contains("quit")) { 
+    finishedFlag_ = true; 
+    return; 
+  }
+
+}
 
 void padeUDPServer::handle_receive(const boost::system::error_code &ec, std::size_t bytes) { 
   if (!ec || ec == boost::asio::error::message_size) { 
-    std::cout << bytes << " bytes Received" << std::endl; 
-    if (!(bytes == 266 || bytes == 70)) { 
-      std::cout << "Not a pade packet, printing only" << std::endl;
-      std::vector<char> charStyle; 
-      for (unsigned int i = 0; i < recv_.size(); i++) { 
-	charStyle.push_back(recv_[i]); 
-      }
-      TString str(charStyle.data()); 
-      std::cout << "Message: " << str; 
-      if (str.Contains("quit")) { 
-	finishedFlag_ = true; 
-	return; 
-      }
-	  
+    //    std::cout << bytes << " bytes Received" << std::endl; 
+    switch (bytes) { 
+    case 266:
+      padedataPacketHandler(); 
+      break; 
+    case 70:
+      endPacketHandler(); 
+      break; 
+    default:
+      unknownPacketHandler(); 
     }
-    else { 
-      //Pade Packet
-      packets.push_back(parsePadePacket(recv_)); 
-      if (packets.back().pktCount != packetCount_) { 
-	std::cout << std::dec << packets.back().pktCount << " Ext Count " << packetCount_ << " Internal, Desynced!" << std::endl; 
-      }
-      std::cout << std::dec << "Packet Count: " << packets.back().pktCount << " Channel: " << packets.back().channel << std::endl; 
-      for (auto& s: recv_) 
-	std::cout << std::hex << (unsigned int) s << " "; 
-      packetCount_++; 
-      std::cout << std::endl; 
-      if (packets.size() >= 32 && packets.back().channel == 31) { 
-	
-      }
-      else { 
-	// Lost a packet / other problem somewhere
-      }
-	
-    }
-  
+
     recv_.fill(0); 
-
-
     receive_loop(); 
   }
 }
@@ -75,7 +96,7 @@ struct padePacket padeUDPServer::parsePadePacket(const std::array<unsigned char,
       adc = 0; 
     }
     pkt.waveform.shrink_to_fit(); 
-    std::cout << "Waveform Count:" << pkt.waveform.size() << std::endl; 
+    //    std::cout << "Waveform Count:" << pkt.waveform.size() << std::endl; 
   }
   return pkt; 
 }

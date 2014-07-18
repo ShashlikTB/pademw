@@ -2,53 +2,12 @@
 
 #ifndef TBEVENT_H
 #define TBEVENT_H
-#include "shashlik.h"
-#include <TH1F.h>
+#include "PadeChannel.h"
+#include "Mapper.h"
 #include <vector>
 
 using std::vector;
 
-const Int_t N_PADE_SAMPLES=120;     // fixed in FW
-const Int_t PADE_THRESHOLD=100;
-
-// approximate sample times for board 112, 113, 115, 116  !! too hacky, needs improvement
-const Int_t PADE_SAMPLE_TIMES[4]={27,21,14,17};
-const Int_t PADE_SAMPLE_RANGE=3;  // +-3 count window = ~5sigma
-
-class PadeChannel : public TObject {
-  ClassDef(PadeChannel,1); 
- public:
-  void Fill(ULong64_t ts, UShort_t transfer_size, 
-	    UShort_t  board_id, UInt_t hw_counter, 
-	    UInt_t ch_number,  UInt_t eventnum, Int_t *wform);
-  void Reset();
-  void Dump() const;
-
-  // getters
-  Int_t GetBoardID() {return _board_id;}
-  Int_t GetChannelNum() {return _ch_number;}
-  Int_t GetChannelID() {return _board_id*100+_ch_number;}
-  Int_t GetChannelIndex();  // index 0--127, following Ledovskoy convention
-  UShort_t* GetWform() {return _wform;}
-  UInt_t GetMax() {return _max;}
-  Int_t GetPeak() {return _peak;}
-  Int_t __SAMPLES() const {return  N_PADE_SAMPLES;}
-  void GetXYZ(float &x, float &y, float &z);
-  Float_t GetPedistal();
-  void GetHist(TH1F* h);
-
-  // private:
-  ULong64_t     _ts;
-  UShort_t      _transfer_size;
-  UShort_t      _board_id;
-  UInt_t        _hw_counter ;
-  UInt_t        _ch_number;
-  UInt_t        _eventnum;
-  UShort_t      _wform[N_PADE_SAMPLES];
-  UInt_t        _max;    // max ADC sample
-  Int_t         _peak;   // sample number for peak
-  Int_t         _flag;
-};
 
 class PadeHeader : public TObject{
   ClassDef(PadeHeader,1); 
@@ -71,6 +30,8 @@ class PadeHeader : public TObject{
   UShort_t _trigPtr;
   UShort_t _pTemp;
   UShort_t _sTemp;
+  UShort_t _gainA;     // main gain setting
+  UShort_t _biasA;     // main bias setting
 };
 
 /// for now ASSUME we are only dealing with WC1 and WC2
@@ -98,16 +59,24 @@ class WCChannel : public TObject{
 class TBSpill : public TObject {
   ClassDef(TBSpill,1);  // Spill header info
 public:
- TBSpill(Int_t spillNumber=0, ULong64_t pcTime=0, Int_t nTrigWC=0, ULong64_t wcTime=0) : 
-  _spillNumber(spillNumber), _pcTime(pcTime), _nTrigWC(nTrigWC), _wcTime(wcTime) {;}
+ TBSpill(Int_t spillNumber=0, ULong64_t pcTime=0, Int_t nTrigWC=0, ULong64_t wcTime=0, 
+	 Int_t pdgID=0, Float_t nomMomentum=0, 
+	 Float_t tableX=-999, Float_t tableY=-999, Float_t boxTemp=0, Float_t roomTemp=0) : 
+  _spillNumber(spillNumber), _pcTime(pcTime), 
+    _nTrigWC(nTrigWC), _wcTime(wcTime), _pdgID(pdgID), _nomMomentum(nomMomentum), 
+    _tableX(tableX), _tableY(tableY), _boxTemp(boxTemp), _roomTemp(roomTemp) {;}
   Int_t GetSpillNumber() const {return _spillNumber;}
   ULong64_t GetPCTime() const {return _pcTime;}
   Int_t GetnTigWC() const {return _nTrigWC;}
   ULong64_t GetWCTime() const {return _wcTime;}
+  Float_t GetTableX() const {return _tableX;}
+  Float_t GetTableY() const {return _tableY;}
   void Dump() const;
   // setters
   void Reset();
-  void SetSpillData(Int_t spillNumber, ULong64_t pcTime, Int_t nTrigWC, ULong64_t wcTime);
+  void SetSpillData(Int_t spillNumber, ULong64_t pcTime, Int_t nTrigWC, ULong64_t wcTime,
+		    Int_t pdgID=0, Float_t nomMomentum=0, 
+		    Float_t tableX=-999, Float_t tableY=-999, Float_t boxTemp=0, Float_t roomTemp=0);
   void SetSpillNumber(Int_t s) {_spillNumber=s;}
   void SetPCTime(ULong64_t t) {_pcTime=t;}
   void SetnTrigWC(Int_t n) {_nTrigWC=n;}
@@ -119,6 +88,14 @@ private:
   Int_t         _nTrigWC;
   ULong64_t     _wcTime;                   // WC time read by PADE PC  
   vector<PadeHeader> _padeHeader;
+  // beam and detector parameters
+  Int_t         _pdgID;                    // particle ID for beam
+  Float_t       _nomMomentum;              // beam momentum setting
+  Float_t       _tableX;                   // table position 
+  Float_t       _tableY;                   // table position 
+  Float_t       _boxTemp;                  // temperature in environmental box
+  Float_t       _roomTemp;                 // temperature in test beam area
+  
 };
 
 
@@ -135,7 +112,9 @@ public:
   Int_t GetWCHits() const {return wc.size();}
   vector<WCChannel> GetWChitsX(Int_t wc, Int_t *min=0, Int_t* max=0) const;
   vector<WCChannel> GetWChitsY(Int_t wc, Int_t *min=0, Int_t* max=0) const;
-  void GetCalHits(vector<CalHit> &calHits, float* calconstants=0);
+  void GetCalHits(vector<CalHit> &calHits, float* calconstants=0, float cut=0);
+  void GetCalHitsFit(vector<CalHit> &calHits, float* calconstants=0, float cut=0);
+  void CalibrateCalHits(vector<CalHit> &calHits, float* calconstants);
 
 
   // setters

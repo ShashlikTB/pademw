@@ -8,6 +8,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "TString.h"
 #include <string>
 #include <functional>
@@ -16,12 +18,24 @@ using boost::asio::ip::tcp;
 using std::shared_ptr; 
 
 
+
+
+
 struct padePacket { 
   unsigned int pktCount; 
   unsigned int channel; 
   unsigned int hitCount; 
   std::vector<int> waveform; 
 };
+
+
+struct event { 
+  std::vector<padePacket> eventPackets; 
+  boost::posix_time::ptime ts; 
+
+event(std::vector<struct padePacket> packets) : eventPackets(packets), ts(boost::date_time::microsec_clock<boost::posix_time::ptime>::universal_time()) { }; 
+
+}; 
 
 
 
@@ -33,6 +47,12 @@ class padeUDPServer {
   bool finishedFlag_; 
   unsigned int packetCount_; 
   std::vector<struct padePacket> packets; 
+  std::vector<struct event> events; 
+
+  void padedataPacketHandler(); 
+  void endPacketHandler(); 
+  void unknownPacketHandler(); 
+
 
 
  public: 
@@ -52,7 +72,7 @@ class padeUDPServer {
   void setpacketCount(unsigned int count) { packetCount_ = count; }; 
   unsigned int packetCount() { return packetCount_; }; 
   std::vector < struct padePacket > *getPackets() { return &packets; }; 
-
+  std::vector < struct event > &Events() { return events; }; 
 }; 
 
 

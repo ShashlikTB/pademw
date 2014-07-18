@@ -79,17 +79,18 @@ class serverResponder:
         self.udpSocket.connect((host, port))
         channel = 0
         time.sleep(0.01)
-        for i in range(0, len(self.pades)): 
-            for i in range(0, 32): 
-                pack = generatePadePacket(self.packetCount, channel)
-                print self.packetCount
-#                print pack
+        for j in range(0, 21): 
+            for i in range(0, len(self.pades)): 
+                for i in range(0, 32): 
+                    pack = generatePadePacket(self.packetCount, i)
+                    print "count %s channel %s" % (self.packetCount, i)
+                #                print pack
+                    self.packetCount += 1
+                    self.udpSocket.sendall(pack)
+                    time.sleep(0.0001)
+                self.udpSocket.send(generateEndPacket(self.packetCount))
                 self.packetCount += 1
-                self.udpSocket.sendall(pack)
-                time.sleep(0.0001)
-            self.udpSocket.send(generateEndPacket(self.packetCount))
-            self.packetCount += 1
-
+                
 
 
 
@@ -103,7 +104,7 @@ class serverResponder:
 
 class padeBoard: 
 
-    trigger = 0
+    trigger = 21
     def __init__(self, padeType): 
         self.stat = hex(random.randint(0,9999))[2:]
         self.bid = random.randint(10,100)
