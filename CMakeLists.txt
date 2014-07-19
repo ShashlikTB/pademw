@@ -6,8 +6,10 @@ execute_process(COMMAND root-config --libdir OUTPUT_VARIABLE ROOTLDIR OUTPUT_STR
 execute_process(COMMAND root-config --libs OUTPUT_VARIABLE ROOTLIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
 include_directories($ENV{GMOCK_HOME}/include $ENV{GMOCK_HOME}/gtest/include "${PROJECT_SOURCE_DIR}/include" )
 link_directories($ENV{GMOCK_HOME}/mybuild $ENV{GMOCK_HOME}/gtest/mybuild ${ROOTLDIR} )
+find_library(TB_LIBRARY TB ${CMAKE_SOURCE_DIR}/shared)
+
 add_definitions(-std=c++0x -ggdb)
-set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS} ")
 
 set(testsources 
    src/main.cpp
@@ -41,5 +43,5 @@ target_link_libraries(standalone event)
 target_link_libraries(standalone boost_system)
 target_link_libraries(standalone boost_thread)			   
 target_link_libraries(standalone boost_regex)			   
-target_link_libraries(standalone libTB.so)			   
 target_link_libraries(standalone ${ROOTLIBS})
+target_link_libraries(standalone ${TB_LIBRARY})
