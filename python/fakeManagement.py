@@ -6,9 +6,10 @@ import random
 
 
 
-def generatePadePacket(count, channel): 
+def generatePadePacket(bID, count, channel): 
     arr = bytearray(266)
     arr[0] = 1
+    arr[2] = bID
     arr[4] = (count & 0xFF00) >> 8
     arr[5] = (count & 0x00FF)
     arr[6] = channel
@@ -81,9 +82,9 @@ class serverResponder:
         time.sleep(0.01)
         for j in range(0, 21): 
             for i in range(0, len(self.pades)): 
-                for i in range(0, 32): 
-                    pack = generatePadePacket(self.packetCount, i)
-                    print "count %s channel %s" % (self.packetCount, i)
+                for j in range(0, 32): 
+                    pack = generatePadePacket(self.pades[i].bid, self.packetCount, j)
+                    print "count %s channel %s" % (self.packetCount, j)
                 #                print pack
                     self.packetCount += 1
                     self.udpSocket.sendall(pack)

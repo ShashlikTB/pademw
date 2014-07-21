@@ -9,14 +9,16 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/pending/queue.hpp>
+
 
 #include "TString.h"
 #include <string>
 #include <functional>
 using boost::asio::ip::udp; 
 using boost::asio::ip::tcp; 
+using boost::pending::queue;
 using std::shared_ptr; 
-
 
 
 
@@ -25,6 +27,7 @@ struct padePacket {
   unsigned int pktCount; 
   unsigned int channel; 
   unsigned int hitCount; 
+  unsigned int boardID; 
   std::vector<int> waveform; 
 };
 
@@ -41,6 +44,7 @@ event(std::vector<struct padePacket> packets) : eventPackets(packets), ts(boost:
 
 class padeUDPServer { 
 
+  queue<struct padePacket> padePackets_; 
   udp::socket sock_; 
   udp::endpoint remote_endpoint_; 
   std::array<unsigned char, 270> recv_; 
