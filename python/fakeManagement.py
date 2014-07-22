@@ -1,7 +1,7 @@
 import socket
 import time 
 import random 
-
+import math
 ### Fake Pade Management Computer 
 
 
@@ -9,7 +9,7 @@ import random
 def generatePadePacket(bID, count, channel): 
     arr = bytearray(266)
     arr[0] = 1
-    arr[2] = bID
+    arr[2] = int(bID, 16)
     arr[4] = (count & 0xFF00) >> 8
     arr[5] = (count & 0x00FF)
     arr[6] = channel
@@ -17,7 +17,7 @@ def generatePadePacket(bID, count, channel):
     arr[8] = 1
     #generate data part of packet
     for i in range(10, 266): 
-        arr[i] = random.randint(0, 0xff)
+        arr[i] = 50+(int(round(15*math.sin(channel*5+i/20))))
         
     return arr
 
@@ -80,17 +80,17 @@ class serverResponder:
         self.udpSocket.connect((host, port))
         channel = 0
         time.sleep(0.01)
-        for j in range(0, 21): 
-            for i in range(0, len(self.pades)): 
-                for j in range(0, 32): 
-                    pack = generatePadePacket(self.pades[i].bid, self.packetCount, j)
-                    print "count %s channel %s" % (self.packetCount, j)
+        for i in range(0, len(self.pades)): 
+            for j in range(0, 32): 
+                pack = generatePadePacket(self.pades[i].bid, self.packetCount, j)
+
+                print "count %s channel %s" % (self.packetCount, j)
                 #                print pack
-                    self.packetCount += 1
-                    self.udpSocket.sendall(pack)
-                    time.sleep(0.0001)
-                self.udpSocket.send(generateEndPacket(self.packetCount))
                 self.packetCount += 1
+                self.udpSocket.sendall(pack)
+                time.sleep(0.0001)
+            self.udpSocket.send(generateEndPacket(self.packetCount))
+            self.packetCount += 1
                 
 
 
@@ -108,7 +108,7 @@ class padeBoard:
     trigger = 21
     def __init__(self, padeType): 
         self.stat = hex(random.randint(0,9999))[2:]
-        self.bid = random.randint(10,100)
+        self.bid = hex(random.randint(10,100))[2:]
         self.type = padeType
         self.arm = hex(0)[2:]
         if (padeType is 'Master'):

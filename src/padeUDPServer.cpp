@@ -83,7 +83,7 @@ struct padePacket padeUDPServer::parsePadePacket(const std::array<unsigned char,
   struct padePacket pkt; 
   pkt.pktCount = array[4] << 8 | array[5]; 
   pkt.channel = array[6]; 
-  pkt.hitCount = array[7] << 8 | array[8]; 
+  pkt.event = array[7] << 8 | array[8]; 
   if (array.size() > 70) { 
     pkt.waveform.reserve(60); 
     int adc = 0; 

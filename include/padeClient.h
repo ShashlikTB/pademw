@@ -20,7 +20,6 @@ using std::shared_ptr;
 
 
 
-
 class padeControlClient {
 
   bool armed_; 

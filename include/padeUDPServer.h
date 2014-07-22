@@ -13,23 +13,16 @@
 
 
 #include "TString.h"
+#include "padeBoard.h"
 #include <string>
 #include <functional>
 using boost::asio::ip::udp; 
 using boost::asio::ip::tcp; 
-using boost::pending::queue;
+using boost::queue;
 using std::shared_ptr; 
 
 
 
-
-struct padePacket { 
-  unsigned int pktCount; 
-  unsigned int channel; 
-  unsigned int hitCount; 
-  unsigned int boardID; 
-  std::vector<int> waveform; 
-};
 
 
 struct event { 

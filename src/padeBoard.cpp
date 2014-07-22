@@ -5,7 +5,6 @@ padeBoard::padeBoard(const std::string &msg) {
     std::vector <std::string> split; 
     boost::algorithm::split(split, msg, boost::algorithm::is_any_of(" ")); 
 
-
     std::vector<std::string>::iterator it = split.begin(); 
     if (boost::algorithm::contains(msg, "Master")) {
       //Master has 2 extra entries
@@ -14,7 +13,7 @@ padeBoard::padeBoard(const std::string &msg) {
     }
     // Layout should be as follows 
     // # BoardId statusRegister Armed #Triggers Error Register LastTrigger PadeTemp SipmTemp
-      
+
     boardid_ = strtol((*it).data(), NULL, 16); 
       ++it; 
       statusReg_ = strtol((*it).data(), NULL, 16); 

@@ -3,7 +3,17 @@
 
 #include <string>
 #include <vector>
+#include <map> 
 #include <boost/algorithm/string.hpp>
+
+struct padePacket { 
+  unsigned int ts; 
+  unsigned int pktCount; 
+  unsigned int channel; 
+  unsigned int event; 
+  unsigned short boardID; 
+  std::vector<int> waveform; 
+};
 
 
 
@@ -17,6 +27,7 @@ class padeBoard {
   unsigned int errorReg_; 
   bool armed_;   
   bool master_; 
+  std::map<unsigned int, std::vector<struct padePacket> > events; 
 
  public: 
   padeBoard(const std::string &msg);
@@ -28,9 +39,27 @@ class padeBoard {
   unsigned int lastTrigger() { return lastTrigger_; }; 
   unsigned int statusRegister() { return statusReg_; };
   unsigned int errorRegister() { return errorReg_; }; 
+  void addEvent(unsigned int key, struct padePacket &pkt) { 
+    if (events.count(key) == 0) { 
+      events[key] = std::vector<struct padePacket>(); 
+    }
+    std::vector<struct padePacket> &packets = events[key]; 
+    packets.push_back(pkt); 
+  }
+  std::vector<padePacket> &getEvent(unsigned int key) { 
+    return events[key]; 
+  }
+  
+  std::map<unsigned int, std::vector<struct padePacket> >::iterator begin() { return events.begin(); }; 
+  std::map<unsigned int, std::vector<struct padePacket> >::iterator end() { return events.end(); }; 
+  
+  void printEvents() { 
+    for (auto pkts : events) { 
+      std::cout << std::get<1>(pkts).size(); 
+    }
+  }
   bool armed() { return armed_; };
   bool isMaster() { return master_; }; 
-
 
 
 }; 
