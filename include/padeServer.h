@@ -28,6 +28,7 @@ using std::shared_ptr;
 
 
 class udpListener { 
+  unsigned int anticipatedPackets_; 
   bool running_; 
   udp::socket sock_; 
   udp::endpoint endpoint_; 
@@ -46,13 +47,17 @@ class udpListener {
    udpListener(boost::asio::io_service& io_service, unsigned short port) : sock_(io_service, udp::endpoint(udp::v4(), port)) { 
     running_ = false; 
     packetCount_ = 0; 
+    anticipatedPackets_ = 0; 
     recv_.fill(0); 
     }
 
   std::vector<struct padePacket> & Packets() { return packets; }; 
 
   void packetHandler(const::boost::system::error_code &ec, std::size_t bytes) {
+    anticipatedPackets_--; 
     unprocessedPackets.push(recv_); 
+
+    
     struct padePacket pkt = parsePadePacket(recv_); 
     pkt.ts = bytes; 
     packets.push_back(pkt); 
@@ -60,19 +65,21 @@ class udpListener {
       std::cout << std::dec << packets.back().pktCount << " Ext Count " << packetCount_ << " Internal, Desynced!" << std::endl; 
       std::cout << "Attempting resync on next event boundary" << std::endl; 
     }
-    std::cout << std::dec << "Packet Count: " << packets.back().pktCount << " Channel: " 
-	      << packets.back().channel << " Board ID:" << packets.back().boardID << std::endl; 
+    /*    std::cout << std::dec << "Packet Count: " << packets.back().pktCount << " Channel: " 
+	  << packets.back().channel << " Board ID:" << packets.back().boardID << std::endl; */
     packetCount_++; 
   
     recv_.fill(0); 
-    if (running_)
+    if (running_ && anticipatedPackets_ > 0) {
       sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&udpListener::packetHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+    }
 
 
   }
 
-  void startListener() { 
-    std::cout << "Starting UDP Listener" << std::endl; 
+  void startListener(unsigned int anticipatedPackets) { 
+    anticiptaedPackets_ = anticiptaedPackets; 
+    //    std::cout << "Starting UDP Listener" << std::endl; 
     recv_.fill(0); 
     running_ = true; 
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&udpListener::packetHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
@@ -99,7 +106,7 @@ class padeServer {
   std::array<char, 512> recv_; 
   std::map<std::string, std::function< void() > > callbacks; 
   std::map<unsigned int, shared_ptr<padeBoard> > padeBoards; 
-
+  unsigned int anticipatedPackets_; 
   bool timeout_; 
 
 
@@ -109,6 +116,7 @@ class padeServer {
     endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)) {
     connected_ = false; 
     timeout_ = false; 
+    anticipatedPackets_ = 0; 
 
   }
 
@@ -131,13 +139,12 @@ class padeServer {
     std::vector<struct padePacket> &packets = padeListener_.Packets(); 
     addPacketsToBoards(packets); 
 
-    std::cout << "Board List" << std::endl; 
+    /*std::cout << "Board List" << std::endl; 
     for (auto pair : padeBoards) { 
       std::cout << "ID:" << std::get<0>(pair) << " Packets in Events "; 
       std::get<1>(pair)->printEvents(); 
       std::cout << std::endl; 
-
-    }
+      } */
 
     
     TFile *f = new TFile("test.root", "RECREATE"); 
@@ -156,7 +163,6 @@ class padeServer {
 	for (auto pkt : it->second) { 
 	  event.FillPadeChannel(tim.tv_usec, pkt.ts, pkt.boardID, pkt.pktCount, pkt.channel, pkt.event, pkt.waveform.data()); 
 	}
-	std::cout << "Iterator...transfer size:" << (it->second)[0].ts << std::endl;
       }
 
     }
@@ -175,9 +181,9 @@ class padeServer {
   void readHandler(const::boost::system::error_code &ec, std::size_t bytes) {
 
     if (!ec) { 
-      std::cout << "Read:" << bytes << " bytes. " << std::endl; 
+      //      std::cout << "Read:" << bytes << " bytes. " << std::endl; 
       std::string line(recv_.data()); 
-      std::cout << "Data: " << line << std::endl; 
+      //      std::cout << "Data: " << line << std::endl; 
       boost::algorithm::trim(line); 
       recv_.fill(0); 
       if (boost::algorithm::contains(line, "read")) { 
@@ -188,7 +194,7 @@ class padeServer {
 								padePacketProcessing(); 
 	}; 
 	timer_.async_wait(fn); 
-	padeListener_.startListener(); 
+	padeListener_.startListener(anticipatedPackets_); 
       }
 	
     }
@@ -211,6 +217,8 @@ class padeServer {
 	  std::cout << part << std::endl; 
 	  shared_ptr<padeBoard> brd(new padeBoard(part)); 
 	  padeBoards[brd->id()] = brd; 
+	  anticipatedPackets_ += brd->lastTrigger()*32+1; 
+	  std::cout << std::dec << "Current Anticipated Packets: " << anticipatedPackets_ << std::endl; 
 	  std::cout << std::dec << "Found a board: " << brd->id() << std::endl; 
 	}
       }   

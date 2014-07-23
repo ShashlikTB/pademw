@@ -116,7 +116,7 @@ class padeBoard:
             padeBoard.trigger = hex(random.randint(0,1000))[2:]
 
         self.errReg = hex(random.randint(0,9999))[2:]
-        self.lastTrig = hex(random.randint(0,9999))[2:]
+        self.lastTrig = hex(1)[2:]
         self.ptemp = hex(random.randint(0,9999))[2:]
         self.stemp = hex(random.randint(0,9999))[2:]
 
