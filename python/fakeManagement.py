@@ -79,7 +79,7 @@ class serverResponder:
         self.udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udpSocket.connect((host, port))
         channel = 0
-        time.sleep(0.01)
+#        time.sleep(0.01)
         for i in range(0, len(self.pades)): 
             for j in range(0, 32): 
                 pack = generatePadePacket(self.pades[i].bid, self.packetCount, j)
@@ -88,7 +88,7 @@ class serverResponder:
                 #                print pack
                 self.packetCount += 1
                 self.udpSocket.sendall(pack)
-                time.sleep(0.0001)
+ #               time.sleep(0.00005)
             self.udpSocket.send(generateEndPacket(self.packetCount))
             self.packetCount += 1
                 
@@ -138,15 +138,23 @@ def server(conn, addr):
         pades.append(padeBoard('Slave'))
 
     responder = serverResponder(pades)
+    i = 0
     while 1: 
+        print 'starting send loop, i:%s, packetCount: %s' % (i, responder.packetCount)
+        if (i > 100):
+            break
+
         data = conn.recv(1024)
-        if not data: break
+        if not data: 
+            print "no data"
+            break
         try:
             if (len(data.strip()) > 0): 
                 print "We received: %s" % data.strip()
                 action = responder.lookupAction(data)+'\r\n'
                 conn.sendall(action)
                 if action.find('read') != -1: 
+                    i += 1
                     conn.sendall('read\r\n')
                     responder.sendfakePadePackets()
 

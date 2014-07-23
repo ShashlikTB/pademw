@@ -30,6 +30,7 @@ class udpListener {
   bool running_; 
   udp::socket sock_; 
   udp::endpoint endpoint_; 
+  std::function<void ()> tcpCB_; 
   std::array<unsigned char, 270> recv_; 
   unsigned int packetCount_; 
   std::vector<struct padePacket> packets; 
@@ -43,7 +44,7 @@ class udpListener {
  public:
 
    udpListener(boost::asio::io_service& io_service, unsigned short port) : 
-  sock_(io_service, udp::endpoint(udp::v4(), port)) 
+  sock_(io_service, udp::endpoint(udp::v4(), port)), tcpCB_(std::nullptr_t())
     { 
       running_ = false; 
       packetCount_ = 0; 
@@ -60,6 +61,9 @@ class udpListener {
 
 
   void stopListener();
+  
+  bool running() { return running_; }; 
+  void setCallback(std::function<void ()> fn) { tcpCB_ = fn; }; 
 
 }; 
 

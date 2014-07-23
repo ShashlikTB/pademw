@@ -28,188 +28,59 @@ using std::shared_ptr;
 
 class padeServer { 
 
-  std::array<char, 512> recv_; 
-  std::map<std::string, std::function< void() > > callbacks; 
-  std::map<unsigned int, shared_ptr<padeBoard> > padeBoards; 
-  unsigned int anticipatedPackets_; 
-  bool timeout_; 
 
 
 
  public: 
- padeServer(boost::asio::io_service &service, const std::string &address, unsigned short tcpport) : service_(service), sock_(service), 
-    endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)) {
+ padeServer(boost::asio::io_service &service, const std::string &address, unsigned short tcpport, TFile &file) : service_(service), sock_(service), 
+    endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)), f_(file)
+
+    {
     connected_ = false; 
     timeout_ = false; 
     anticipatedPackets_ = 0; 
-
-  }
-
-  void addPacketsToBoards(std::vector<struct padePacket> &packets) { 
-    for (auto packet : packets) { 
-
-      unsigned int boardKey = packet.boardID; 
-      unsigned int eventKey = packet.event; 
-      if (padeBoards.count(boardKey) > 0) 
-	padeBoards[boardKey]->addEvent(eventKey, packet); 
-
-    }
-
-
-  }
-
-
-  void padePacketProcessing() { 
-    std::cout << "Processing packets" << std::endl; 
-    std::vector<struct padePacket> &packets = padeListener_.Packets(); 
-    addPacketsToBoards(packets); 
-
-    /*std::cout << "Board List" << std::endl; 
-    for (auto pair : padeBoards) { 
-      std::cout << "ID:" << std::get<0>(pair) << " Packets in Events "; 
-      std::get<1>(pair)->printEvents(); 
-      std::cout << std::endl; 
-      } */
-
-    
-    TFile *f = new TFile("test.root", "RECREATE"); 
-    TTree *tree = new TTree("t1041", "T1041"); 
-    TBEvent event; 
-    TBSpill spill; 
-    TBranch *tbevt = tree->Branch("tbevent", "TBEvent", &event, 64000, 0); 
-    TBranch *tbspill = tree->Branch("tbspill", "TBSpill", &spill, 64000, 0); 
-    timeval tim; 
-    gettimeofday(&tim, NULL); 
-    spill.SetSpillData(1, tim.tv_usec, 0, 0, 0, 0, -1, -1, 50.0, 50.0); 
-    tbspill->Fill(); 
-    for (auto pair : padeBoards) { 
-      shared_ptr<padeBoard> board (std::get<1>(pair) ); 
-      for (std::map<unsigned int, std::vector<struct padePacket> >::iterator it = board->begin(); it != board->end(); ++it) { 
-	for (auto pkt : it->second) { 
-	  event.FillPadeChannel(tim.tv_usec, pkt.ts, pkt.boardID, pkt.pktCount, pkt.channel, pkt.event, pkt.waveform.data()); 
-	}
+    std::function<void ()> fn = [this](){ 
+      std::cout << "Got all packets" << std::endl;       
+      if (sock_.available() > 0) { 
+	//need to clear recv buffer
+	sock_.read_some(boost::asio::buffer(recv_)); 
+	std::cout << "Excess stuff " << std::string(recv_.data()) << std::endl; 
+	recv_.fill(0); 
       }
-
-    }
-    tbevt->Fill(); 	
-    tree->Write(); 
-    f->Write(); 
-    f->Close(); 
-      
-
-    
-
-    service_.stop(); 
-
-  }
-
-  void readHandler(const::boost::system::error_code &ec, std::size_t bytes) {
-
-    if (!ec) { 
-      //      std::cout << "Read:" << bytes << " bytes. " << std::endl; 
-      std::string line(recv_.data()); 
-      //      std::cout << "Data: " << line << std::endl; 
-      boost::algorithm::trim(line); 
-      recv_.fill(0); 
-      if (boost::algorithm::contains(line, "read")) { 
-	timer_.expires_from_now(timeoutLen_); 
-	//enable pade udp server 
-	auto fn = [this](const boost::system::error_code &ec) { timeout_ = true; 
-								padeListener_.stopListener(); 
-								padePacketProcessing(); 
-	}; 
-	timer_.async_wait(fn); 
-	padeListener_.startListener(anticipatedPackets_); 
-      }
-	
-    }
-  }
-
-  void statusHandler(const boost::system::error_code &ec, std::size_t bytes) { 
-    if (!ec) { 
-
-      std::cout << "Read:" << bytes << " bytes. " << std::endl; 
-      std::string line(recv_.data()); 
-      std::cout << "Data: " << line << std::endl; 
-      recv_.fill(0); 
-
-      std::vector <std::string> split;
-      boost::algorithm::split_regex(split, line, boost::regex("Slave")); 
-      if (TString(split[0][0]).Atoi() == split.size()) { 
-
-	for (auto part : split) { 
-	  boost::algorithm::trim(part); 
-	  std::cout << part << std::endl; 
-	  shared_ptr<padeBoard> brd(new padeBoard(part)); 
-	  padeBoards[brd->id()] = brd; 
-	  anticipatedPackets_ += brd->lastTrigger()*32+1; 
-	  std::cout << std::dec << "Current Anticipated Packets: " << anticipatedPackets_ << std::endl; 
-	  std::cout << std::dec << "Found a board: " << brd->id() << std::endl; 
-	}
-      }   
-      if (!padeBoards.empty()) { 
-	std::string msg = "read\r\n"; 
-	auto fn = [this, msg](const::boost::system::error_code &ec, std::size_t bytes) { 
-	  if (!ec) { std::cout << "Read: " << bytes << " bytes" << std::endl; 
-		     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::readHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-	  }
-	}; 
-	
-	sock_.async_write_some(boost::asio::buffer(msg), fn); 	
-
-
-      }
-    }
-  }
-
-  void clearHandler(const::boost::system::error_code &ec, std::size_t bytes) { 
-    if (!ec) { 
-      std::cout << "Read:" << bytes << " bytes. " << std::endl; 
-      std::string line(recv_.data()); 
-      recv_.fill(0); 
-      boost::algorithm::trim(line); 
-      if (boost::algorithm::contains(line, "clear")) { 
-	connected_ = true; 
-	std::string msg("status\r\n"); 
-
-	//If you haven't used c++11's lambda form this may be a bit confusing 
-	//This binds an anonymous function to auto fn, capturing the this variable and the status msg
-	//into a callback used by boost after data has been written to a socket
-	auto fn = [this, msg](const::boost::system::error_code &ec, std::size_t bytes) { 
-	  if (!ec) { std::cout << "Read: " << bytes << " bytes" << std::endl; 
-		     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::statusHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-	  }
-	}; 
-	sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), fn); 
-
-      }
-    }
-  }
-
-
-  void writeHandler(const::boost::system::error_code &ec, std::size_t bytes) { 
-    if (!ec) { 
-      std::cout << "Wrote: " << bytes << " bytes. " << std::endl; 
-      
-    }
-  }
-
-  void connectHandler(const boost::system::error_code &ec) { 
-    if (!ec) { 
-      std::cout << "Connecting" << std::endl; 
-      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-
+      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
       sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::clearHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-    }
+      timer_.cancel(); 
+      padePacketProcessing(); 
+
+    }; 
+
+    padeListener_.setCallback(fn); 
 
   }
 
+  void addPacketsToBoards(std::vector<struct padePacket> &packets);
 
-  void connect() { 
-    sock_.async_connect(endpoint_, boost::bind(&padeServer::connectHandler, this, boost::asio::placeholders::error)); 
-  }
+  void padePacketProcessing();
+
+
+  void readHandler(const::boost::system::error_code &ec, std::size_t bytes);
+
+
+  void statusHandler(const boost::system::error_code &ec, std::size_t bytes);
+
+  void clearHandler(const::boost::system::error_code &ec, std::size_t bytes);
+
+
+  void writeHandler(const::boost::system::error_code &ec, std::size_t bytes);
+
+
+  void connectHandler(const boost::system::error_code &ec);
+
+  void connect(); 
+
 
  private:
+
   boost::asio::io_service &service_; 
   tcp::socket sock_; 
   tcp::endpoint endpoint_; 
@@ -217,6 +88,14 @@ class padeServer {
   udpListener padeListener_; 
   boost::posix_time::seconds timeoutLen_; 
   bool connected_; 
+
+  std::array<char, 512> recv_; 
+  std::map<std::string, std::function< void() > > callbacks; 
+  std::map<unsigned int, shared_ptr<padeBoard> > padeBoards; 
+  unsigned int anticipatedPackets_; 
+  bool timeout_; 
+  TFile &f_; 
+
 
 }; 
 

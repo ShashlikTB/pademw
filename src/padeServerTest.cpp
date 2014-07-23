@@ -10,7 +10,8 @@ int main(int argc, char *argv[]) {
   unsigned int clientPort = 23; 
   boost::asio::io_service mainThreadService; 
 
-  padeServer server(mainThreadService, address, clientPort); 
+  TFile file("test.root", "RECREATE"); 
+  padeServer server(mainThreadService, address, clientPort, file); 
   server.connect(); 
   mainThreadService.run(); 
   std::cout << "...Annnnnnnnnd....we are done! Good Night Chicago!" << std::endl; 
