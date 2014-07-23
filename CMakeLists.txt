@@ -17,18 +17,6 @@ find_library(TB_LIBRARY TB ${CMAKE_SOURCE_DIR}/shared)
 add_definitions(-std=c++0x -ggdb -fPIC )
 set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS} -DQT_NO_KEYWORDS")
 
-set(testsources 
-   src/main.cpp
-   src/padeBoard.cpp
-   src/padeClient.cpp
-   src/padeUDPServer.cpp
-   tests/pademwTests.cpp)
-   
-set(standalonesources
-	src/padeBoard.cpp
-	src/padeClient.cpp
-	src/padeUDPServer.cpp
-	src/standalone.cpp)	
 
 set(uitestsources
 	src/padeBoard.cpp
@@ -46,28 +34,6 @@ set(padeserversources
 
 QT5_WRAP_UI(UISrcs src/form.ui)
 QT5_WRAP_CPP(MOCSrcs include/form.h)
-
-   
-add_executable(test ${testsources} )
-
-target_link_libraries(test pthread)
-target_link_libraries(test gmock)
-target_link_libraries(test gtest)
-target_link_libraries(test event)
-target_link_libraries(test boost_system)
-target_link_libraries(test boost_thread)			   
-target_link_libraries(test boost_regex)			   
-
-target_link_libraries(test ${ROOTLIBS})
-
-add_executable(standalone ${standalonesources} )
-target_link_libraries(standalone pthread)
-target_link_libraries(standalone event)
-target_link_libraries(standalone boost_system)
-target_link_libraries(standalone boost_thread)			   
-target_link_libraries(standalone boost_regex)			   
-target_link_libraries(standalone ${ROOTLIBS})
-target_link_libraries(standalone ${TB_LIBRARY})
 
 add_executable(uitest ${uitestsources} ${MOCSrcs} ${UISrcs} )
 target_link_libraries(uitest ${Qt5Widgets_LIBRARIES})
