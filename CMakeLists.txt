@@ -20,8 +20,6 @@ set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS} -DQT_NO_KEYWORD
 
 set(uitestsources
 	src/padeBoard.cpp
-	src/padeClient.cpp
-	src/padeUDPServer.cpp
 	src/uitest.cpp
 	src/form.cpp)
 
@@ -29,6 +27,7 @@ set(uitestsources
 set(padeserversources
 	src/padeBoard.cpp
 	src/padeServer.cpp
+	src/udpServer.cpp
 	src/padeServerTest.cpp)	
 
 
