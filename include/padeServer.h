@@ -54,7 +54,7 @@ class padeServer {
   std::string buildReadString();
   void packetLoop(const boost::system::error_code &ec, std::size_t bytes); 
   void padePacketProcessing();
-  void finished(const::boost::system::error_code &ec, std::size_t bytes); 
+  void finished(); 
 
 
 

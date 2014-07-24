@@ -187,6 +187,8 @@ void padeServer::packetLoop(const boost::system::error_code &ec, std::size_t byt
   std::cout << "Packet Loop" << std::endl; 
   if (ec) { 
     std::cout << "May have lost connection or other socket problem: data packet control" << std::endl; 
+    finished(); 
+    return; 
   }
 
   std::string clearMsg(recv_.data()); 
@@ -204,7 +206,7 @@ void padeServer::dataPacketControl(const boost::system::error_code &ec, std::siz
 
   if (ec) { 
     std::cout << "May have lost connection or other socket problem: data packet control" << std::endl; 
-    finished(ec, 0); 
+    finished(); 
   }
 
   std::string statusMsg(recv_.data()); 
@@ -295,14 +297,16 @@ void padeServer::processPackets() {
     else {
       std::cout << "We've gotten all available triggers!" << std::endl; 
       sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-      sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::finished, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+      auto finishedFn = [this](const::boost::system::error_code &ec, std::size_t bytes) { finished(); }; 
+      sock_.async_receive(boost::asio::buffer(recv_), finishedFn); 
 
     }
 
 
 }
 
-void padeServer::finished(const::boost::system::error_code &ec, std::size_t bytes) {
+void padeServer::finished() { 
+
   std::cout << "Filling TTree" << std::endl; 
   static TTree *tree = new TTree("t1041", "T1041"); 
   TBEvent event; 

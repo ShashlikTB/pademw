@@ -45,8 +45,11 @@ class serverResponder:
             'status': self.status,
             }
         self.pades = boards
+        print 'events: %s' % hex(events)[2:]
+        padeBoard.trigger = hex(events)[2:]
+        print self.status('status')
         self.packetCount = 0
-        
+
         self.events = []
         packets = [] 
         for ev in range(0, events): 
@@ -127,7 +130,7 @@ class padeBoard:
         self.pktcount = 0
         if (padeType is 'Master'):
             # Want all of the triggers to match
-            padeBoard.trigger = hex(random.randint(0,1000))[2:]
+            padeBoard.trigger = 1
 
         self.errReg = hex(random.randint(0,9999))[2:]
         self.lastTrig = hex(0)[2:]
