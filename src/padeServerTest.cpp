@@ -12,8 +12,9 @@ int main(int argc, char *argv[]) {
 
   TFile file("test.root", "RECREATE"); 
   padeServer server(mainThreadService, address, clientPort, file); 
-  server.connect(); 
+  server.startSpill(); 
   mainThreadService.run(); 
+  file.Write(); 
   std::cout << "...Annnnnnnnnd....we are done! Good Night Chicago!" << std::endl; 
 
   return 0; 

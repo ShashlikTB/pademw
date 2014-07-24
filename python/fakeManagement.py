@@ -148,14 +148,14 @@ class padeBoard:
 def server(conn, addr): 
     pades = [] 
     pades.append(padeBoard('Master'))
-    for i in range (0,2): 
+    for i in range (0,3): 
         pades.append(padeBoard('Slave'))
 
-    responder = serverResponder(pades, 1000)
+    responder = serverResponder(pades, 301)
     i = 0
     while 1: 
         print 'starting send loop, i:%s, packetCount: %s' % (i, responder.packetCount)
-        if (i > 999):
+        if (i > 300):
             break
 
         data = conn.recv(256)

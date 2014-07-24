@@ -39,49 +39,48 @@ class padeServer {
     {
       triggerCount_ = 0; 
       padeListener_.resetSync(); 
+      currentSpill_ = 0; 
     connected_ = false; 
     timeout_ = false; 
     anticipatedPackets_ = 0; 
-    std::function<void ()> fn = [this](){ 
-      std::cout << "Got all packets" << std::endl;       
-      if (sock_.available() > 0) { 
-	//need to clear recv buffer
-	sock_.read_some(boost::asio::buffer(recv_)); 
-	std::cout << "Excess stuff " << std::string(recv_.data()) << std::endl; 
-	recv_.fill(0); 
-      }
-      padePacketProcessing(); 
-      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-      sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::clearHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-      timer_.cancel(); 
 
-
-    }; 
-
-    padeListener_.setCallback(fn); 
 
   }
 
+
+  void connectControl(const boost::system::error_code &ec); 
   void addPacketsToBoards(std::vector<struct padePacket> &packets);
 
+  std::string buildReadString();
+  void packetLoop(const boost::system::error_code &ec, std::size_t bytes); 
   void padePacketProcessing();
+  void finished(const::boost::system::error_code &ec, std::size_t bytes); 
 
 
-  void readHandler(const::boost::system::error_code &ec, std::size_t bytes);
+
+  void clearPackets();
+  void parseStatusMessage(const std::string &status); 
 
 
-  void statusHandler(const boost::system::error_code &ec, std::size_t bytes);
-
-  void clearHandler(const::boost::system::error_code &ec, std::size_t bytes);
 
 
+
+
+
+  void startSpill(); 
+  void livingControl(const::boost::system::error_code &ec, std::size_t bytes);
+
+  void statusControl(const::boost::system::error_code &ec, std::size_t bytes);
+  void disarmControl(const boost::system::error_code &ec, std::size_t bytes); 
+  void dataPacketControl(const boost::system::error_code &ec, std::size_t bytes); 
+
+  void udpControl(const boost::system::error_code &ec, std::size_t bytes); 
+
+  void processPackets(); 
+  void endSpill(const boost::system::error_code &ec); 
   void writeHandler(const::boost::system::error_code &ec, std::size_t bytes);
 
   shared_ptr<padeBoard> findMaster(); 
-
-  void connectHandler(const boost::system::error_code &ec);
-
-  void connect(); 
 
 
  private:
@@ -98,13 +97,14 @@ class padeServer {
   boost::asio::io_service &service_; 
   tcp::socket sock_; 
   tcp::endpoint endpoint_; 
+
+
   boost::asio::deadline_timer timer_; 
   udpListener padeListener_; 
   boost::posix_time::seconds timeoutLen_; 
   bool connected_; 
 
   std::array<char, 512> recv_; 
-  std::map<std::string, std::function< void() > > callbacks; 
   std::map<unsigned int, shared_ptr<padeBoard> > padeBoards; 
   unsigned int anticipatedPackets_; 
   std::set<unsigned int> readEvents_; 
@@ -113,6 +113,8 @@ class padeServer {
   unsigned short triggerCount_; 
   TFile &f_; 
 
+
+  unsigned int currentSpill_; 
 
 }; 
 
