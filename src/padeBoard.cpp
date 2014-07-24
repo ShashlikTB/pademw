@@ -4,7 +4,6 @@
 
 
 padeBoard::padeBoard(const std::string &msg) {
-  count = 0; 
   std::vector <std::string> split; 
   boost::algorithm::split(split, msg, boost::algorithm::is_any_of(" ")); 
 

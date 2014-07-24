@@ -43,6 +43,7 @@ class padeServer {
     connected_ = false; 
     timeout_ = false; 
     anticipatedPackets_ = 0; 
+    whFn = boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred); 
 
 
   }
@@ -112,7 +113,7 @@ class padeServer {
   bool timeout_; 
   unsigned short triggerCount_; 
   TFile &f_; 
-
+  std::function<void (const::boost::system::error_code &ec, std::size_t bytes)> whFn; 
 
   unsigned int currentSpill_; 
 

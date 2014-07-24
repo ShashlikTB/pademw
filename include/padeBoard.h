@@ -34,7 +34,6 @@ class padeBoard {
 
  public: 
   padeBoard(const std::string &msg);
-  unsigned int count;   
   unsigned int id() { return boardid_; }; 
   unsigned int padeTemperature() { return ptemp_; }; 
   unsigned int sipmTemperature() { return stemp_; }; 
@@ -42,7 +41,7 @@ class padeBoard {
   unsigned int lastTrigger() { return lastTrigger_; }; 
   unsigned int statusRegister() { return statusReg_; };
   unsigned int errorRegister() { return errorReg_; }; 
-
+  unsigned int nEvents() { return events.size(); }; 
   unsigned int eventCount() { return events.size(); }; 
 
 

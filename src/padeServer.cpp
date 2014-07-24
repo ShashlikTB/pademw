@@ -11,7 +11,7 @@ void padeServer::startSpill() {
   }
   else { 
     //Check for Life 
-    sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+    sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), whFn);
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::livingControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
   }
   
@@ -104,7 +104,7 @@ void padeServer::livingControl(const::boost::system::error_code &ec, std::size_t
       }
       std::cout << "Pade Control Server is alive!" << std::endl; 
       std::cout << "Getting # and Status of Pade Boards!" << std::endl;
-      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
       sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::statusControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
     }
 
@@ -128,7 +128,7 @@ void padeServer::statusControl(const::boost::system::error_code &ec, std::size_t
 	    recv_.fill(0); 
 	    if (!(boost::algorithm::contains(armMsg, "arm"))) { 
 	      //Failed to arm the Pade Boards, will try again from status
-	      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), boost::bind(&padeServer::statusControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
 	    }
 	    //Armed the Pade Boards, wait for spill to complete, will eventually come from the wire chamber data 
 	    boost::asio::deadline_timer waitForSpill(service_, boost::posix_time::seconds(5)); 
@@ -137,13 +137,13 @@ void padeServer::statusControl(const::boost::system::error_code &ec, std::size_t
 	  }
 	}; 
 
-	sock_.async_write_some(boost::asio::buffer(std::string("arm\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));  
+	sock_.async_write_some(boost::asio::buffer(std::string("arm\r\n")), whFn); 
 	sock_.async_receive(boost::asio::buffer(recv_), armfn); 
       }
       else {
 	//Try again
 	clearPackets(); 
-	sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
 	sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::statusControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
       }
     
@@ -156,7 +156,7 @@ void padeServer::endSpill(const boost::system::error_code &ec) {
   currentSpill_++; 
 
   //Write to status and read
-  sock_.async_write_some(boost::asio::buffer(std::string("disarm\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+  sock_.async_write_some(boost::asio::buffer(std::string("disarm\r\n")), whFn); 
   sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::disarmControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 
 }
@@ -171,12 +171,12 @@ void padeServer::disarmControl(const boost::system::error_code &ec, std::size_t 
     //Didn't disarm properly or heard something funky
     //Retrying
     clearPackets(); 
-    sock_.async_write_some(boost::asio::buffer(std::string("disarm\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+    sock_.async_write_some(boost::asio::buffer(std::string("disarm\r\n")), whFn); 
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::disarmControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
   }
 
   //Disarmed
-  sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+  sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
   sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::dataPacketControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 
 
@@ -195,7 +195,7 @@ void padeServer::packetLoop(const boost::system::error_code &ec, std::size_t byt
   recv_.fill(0); 
 
   if (boost::algorithm::contains(clearMsg, "clear")) {
-    sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+    sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::dataPacketControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 
   }
@@ -223,7 +223,7 @@ void padeServer::dataPacketControl(const boost::system::error_code &ec, std::siz
 	sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::udpControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
       }
     }; 
-    sock_.async_write_some(boost::asio::buffer(readMsg),boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+    sock_.async_write_some(boost::asio::buffer(readMsg), whFn); 
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::udpControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 
 
@@ -291,12 +291,12 @@ void padeServer::processPackets() {
     if (triggerCount_ < master->availableTriggers()) { 
       std::cout << master->availableTriggers()-triggerCount_ << " triggers available" << std::endl; 
       std::cout << "Master Avalible:" << master->availableTriggers() << " Trigger Count " << triggerCount_ << std::endl; 
-      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), whFn); 
       sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::packetLoop, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
     }
     else {
       std::cout << "We've gotten all available triggers!" << std::endl; 
-      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), whFn); 
       auto finishedFn = [this](const::boost::system::error_code &ec, std::size_t bytes) { finished(); }; 
       sock_.async_receive(boost::asio::buffer(recv_), finishedFn); 
 
@@ -308,6 +308,7 @@ void padeServer::processPackets() {
 void padeServer::finished() { 
 
   std::cout << "Filling TTree" << std::endl; 
+
   static TTree *tree = new TTree("t1041", "T1041"); 
   TBEvent event; 
   TBSpill spill; 
@@ -317,16 +318,20 @@ void padeServer::finished() {
   gettimeofday(&tim, NULL); 
   spill.SetSpillData(currentSpill_, tim.tv_usec, 0, 0, 0, 0, -1, -1, 50.0, 50.0); 
   tbspill->Fill(); 
-  for (auto pair : padeBoards) { 
-    shared_ptr<padeBoard> board (std::get<1>(pair) ); 
-    for (std::map<unsigned int, std::vector<struct padePacket> >::iterator it = board->begin(); it != board->end(); ++it) { 
-      for (auto pkt : it->second) { 
-	  event.FillPadeChannel(tim.tv_usec, pkt.ts, pkt.boardID, pkt.pktCount, pkt.channel, pkt.event, pkt.waveform.data()); 
-	}
+  
+  shared_ptr<padeBoard> master = findMaster(); 
+  unsigned int eventCount = master->nEvents(); 
+  for (unsigned int i = 0; i < eventCount; i++) { 
+    for (auto pair : padeBoards) { 
+      shared_ptr<padeBoard> board (std::get<1>(pair) ); 
+      std::vector<padePacket> &padeEvent = board->getEvent(i); 
+      for (auto pkt : padeEvent) { 
+	event.FillPadeChannel(tim.tv_usec, pkt.ts, pkt.boardID, pkt.pktCount, pkt.channel, pkt.event, pkt.waveform.data()); 
       }
-
     }
     tbevt->Fill(); 	
+    event.Reset(); 
+  }
     //    tree->Write(); 
     //    f_.Write(); 
 
