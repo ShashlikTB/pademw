@@ -5,6 +5,8 @@
 #include <vector>
 #include <map> 
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
+
 
 struct padePacket { 
   unsigned int ts; 
@@ -18,6 +20,7 @@ struct padePacket {
 
 
 class padeBoard { 
+
   unsigned int boardid_; 
   unsigned int ptemp_; 
   unsigned int stemp_; 
@@ -31,7 +34,7 @@ class padeBoard {
 
  public: 
   padeBoard(const std::string &msg);
-  
+  unsigned int count;   
   unsigned int id() { return boardid_; }; 
   unsigned int padeTemperature() { return ptemp_; }; 
   unsigned int sipmTemperature() { return stemp_; }; 
@@ -39,6 +42,10 @@ class padeBoard {
   unsigned int lastTrigger() { return lastTrigger_; }; 
   unsigned int statusRegister() { return statusReg_; };
   unsigned int errorRegister() { return errorReg_; }; 
+
+  unsigned int eventCount() { return events.size(); }; 
+
+
   void addEvent(unsigned int key, struct padePacket &pkt) { 
     if (events.count(key) == 0) { 
       events[key] = std::vector<struct padePacket>(); 

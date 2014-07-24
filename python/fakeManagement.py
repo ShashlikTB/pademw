@@ -6,15 +6,15 @@ import math
 
 
 
-def generatePadePacket(bID, count, channel): 
+def generatePadePacket(bID, count, channel, event): 
     arr = bytearray(266)
     arr[0] = 1
     arr[2] = int(bID, 16)
     arr[4] = (count & 0xFF00) >> 8
     arr[5] = (count & 0x00FF)
     arr[6] = channel
-    arr[7] = 1
-    arr[8] = 1
+    arr[7] = (event & 0xFF00) >> 8
+    arr[8] = (event & 0x00FF)
     #generate data part of packet
     for i in range(10, 266): 
         arr[i] = 50+(int(round(15*math.sin(channel*5+i/20))))
@@ -22,8 +22,9 @@ def generatePadePacket(bID, count, channel):
     return arr
 
 
-def generateEndPacket(count): 
+def generateEndPacket(boardID, count): 
     endPacket = bytearray('\x00N%\x00\x04A\x124Vx%\x00\x00\x00\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\x00\x00 \x08\x00\x00\xa2\x00\x00\x00\x87eC!\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+    endPacket[2] = int(boardID, 16)
     endPacket[4] = (count & 0xFF00) >> 8
     endPacket[5] = (count & 0x00FF)
 
@@ -31,10 +32,10 @@ def generateEndPacket(count):
 
 class serverResponder: 
     
+    
 
 
-
-    def __init__(self, boards): 
+    def __init__(self, boards, events): 
         self.actions = { 
             'arm': self.arm,
             'disarm': self.disarm,
@@ -45,6 +46,21 @@ class serverResponder:
             }
         self.pades = boards
         self.packetCount = 0
+        
+        self.events = []
+        packets = [] 
+        for ev in range(0, events): 
+            for i in range(0, len(self.pades)): 
+                for j in range(0, 32): 
+                    pack = generatePadePacket(self.pades[i].bid, self.pades[i].pktcount, j, ev)
+                    packets.append(pack)
+                    self.pades[i].pktcount += 1
+                packets.append(generateEndPacket(self.pades[i].bid, self.pades[i].pktcount))
+                self.pades[i].pktcount += 1
+            self.events.append(packets)
+            packets = []
+                            
+
 
     def arm(self, msg): 
         print 'Arming'
@@ -73,24 +89,21 @@ class serverResponder:
         return "%s %s" % (npades, ' '.join(padeStatus))
         
 
-    def sendfakePadePackets(self): 
+    def sendfakePadePackets(self, ev): 
         host = '127.0.0.1'
         port = 21331
         self.udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udpSocket.connect((host, port))
-        channel = 0
-#        time.sleep(0.01)
-        for i in range(0, len(self.pades)): 
-            for j in range(0, 32): 
-                pack = generatePadePacket(self.pades[i].bid, self.packetCount, j)
 
-                print "count %s channel %s" % (self.packetCount, j)
-                #                print pack
-                self.packetCount += 1
-                self.udpSocket.sendall(pack)
- #               time.sleep(0.00005)
-            self.udpSocket.send(generateEndPacket(self.packetCount))
-            self.packetCount += 1
+
+        self.udpSocket.connect((host, port))
+        try: 
+#            print "event %s" % ev
+            event = self.events[ev]
+            for packet in event: 
+                self.udpSocket.send(packet)
+                time.sleep(0.0004)
+        except Exception as e:
+            print e
                 
 
 
@@ -111,12 +124,13 @@ class padeBoard:
         self.bid = hex(random.randint(10,100))[2:]
         self.type = padeType
         self.arm = hex(0)[2:]
+        self.pktcount = 0
         if (padeType is 'Master'):
             # Want all of the triggers to match
             padeBoard.trigger = hex(random.randint(0,1000))[2:]
 
         self.errReg = hex(random.randint(0,9999))[2:]
-        self.lastTrig = hex(1)[2:]
+        self.lastTrig = hex(0)[2:]
         self.ptemp = hex(random.randint(0,9999))[2:]
         self.stemp = hex(random.randint(0,9999))[2:]
 
@@ -137,14 +151,14 @@ def server(conn, addr):
     for i in range (0,2): 
         pades.append(padeBoard('Slave'))
 
-    responder = serverResponder(pades)
+    responder = serverResponder(pades, 1000)
     i = 0
     while 1: 
         print 'starting send loop, i:%s, packetCount: %s' % (i, responder.packetCount)
-        if (i > 100):
+        if (i > 999):
             break
 
-        data = conn.recv(1024)
+        data = conn.recv(256)
         if not data: 
             print "no data"
             break
@@ -155,8 +169,11 @@ def server(conn, addr):
                 conn.sendall(action)
                 if action.find('read') != -1: 
                     i += 1
+                    eventNumber = int(data.strip().split(' ')[1], 10)
                     conn.sendall('read\r\n')
-                    responder.sendfakePadePackets()
+                    responder.sendfakePadePackets(eventNumber)
+                    for pade in responder.pades:
+                        pade.lastTrig = hex(eventNumber)
 
         except Exception as e: 
             print e

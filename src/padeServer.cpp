@@ -7,8 +7,11 @@ void padeServer::addPacketsToBoards(std::vector<struct padePacket> &packets) {
 
       unsigned int boardKey = packet.boardID; 
       unsigned int eventKey = packet.event; 
-      if (padeBoards.count(boardKey) > 0) 
+      if (padeBoards.count(boardKey) > 0)  {
 	padeBoards[boardKey]->addEvent(eventKey, packet); 
+
+      }
+      
 
     }
 
@@ -16,36 +19,29 @@ void padeServer::addPacketsToBoards(std::vector<struct padePacket> &packets) {
 }
 
 
-struct padePacket udpListener::parsePadePacket(const std::array<unsigned char, 270> &array) { 
-  struct padePacket pkt; 
-  pkt.boardID = array[2]; 
-  pkt.pktCount = array[4] << 8 | array[5]; 
-  pkt.channel = array[6]; 
-  pkt.event = array[7] << 8 | array[8]; 
-  if (array.size() > 70) { 
-    pkt.waveform.reserve(60); 
-    int adc = 0; 
-    for (unsigned int i = 0; i < 60; i++ ) { 
-      //ADC position calculation pulled from Paul's C# Code 
-      adc = array[17+4*i] * 256 + array[16+4*i]; 
-      pkt.waveform.push_back(adc); 
-      adc = array[15+4*i]*256 + array[14+4*i]; 
-      pkt.waveform.push_back(adc); 
-      adc = 0; 
-    }
-    pkt.waveform.shrink_to_fit(); 
-
+shared_ptr<padeBoard> padeServer::findMaster() { 
+  for (auto pair : padeBoards) { 
+    if (std::get<1>(pair)->isMaster())
+      return std::get<1>(pair); 
   }
-  return pkt; 
-};
-
+  return std::nullptr_t(); 
+}
 
 void padeServer::padePacketProcessing() { 
     std::cout << "Processing packets" << std::endl; 
+    if (!padeListener_.desynced()) { 
+      
+      auto master = findMaster(); 
+      if (master != std::nullptr_t()) 
+	readEvents_.insert(triggerCount_); 
+      //      std::cout << "Inserting last trigger" << triggerCount_ << std::endl; 
+
+    }
+    padeListener_.resetSync(); 
     std::vector<struct padePacket> &packets = padeListener_.Packets(); 
     addPacketsToBoards(packets); 
 
-    /*std::cout << "Board List" << std::endl; 
+    /* std::cout << "Board List" << std::endl; 
     for (auto pair : padeBoards) { 
       std::cout << "ID:" << std::get<0>(pair) << " Packets in Events "; 
       std::get<1>(pair)->printEvents(); 
@@ -53,7 +49,7 @@ void padeServer::padePacketProcessing() {
       } */
 
     
-
+    /*
     TTree *tree = new TTree("t1041", "T1041"); 
     TBEvent event; 
     TBSpill spill; 
@@ -75,8 +71,8 @@ void padeServer::padePacketProcessing() {
     tbevt->Fill(); 	
     tree->Write(); 
     f_.Write(); 
-
-
+    */
+    std::cout << "Clearing boards" << std::endl; 
 
     padeBoards.clear(); 
 
@@ -126,15 +122,39 @@ void padeServer::statusHandler(const boost::system::error_code &ec, std::size_t 
 	for (auto part : split) { 
 	  boost::algorithm::trim(part); 
 	  //	  std::cout << part << std::endl; 
+
 	  shared_ptr<padeBoard> brd(new padeBoard(part)); 
-	  padeBoards[brd->id()] = brd; 
-	  anticipatedPackets_ += brd->lastTrigger()*32+1; 
+	  if (padeBoards.count(brd->id()) == 0) { 
+	    padeBoards[brd->id()] = brd; 
+	  }
+	  anticipatedPackets_ += 33; 
 	  std::cout << std::dec << "Current Anticipated Packets: " << anticipatedPackets_ << std::endl; 
 	  std::cout << std::dec << "Found a board: " << brd->id() << std::endl; 
+
 	}
       }   
       if (!padeBoards.empty()) { 
-	std::string msg = "read\r\n"; 
+	std::cout << std::dec; 
+	boost::format fmter("read %1%\r\n"); 
+	std::string msg = "read all\r\n"; 
+	for (auto board : padeBoards) { 
+	  shared_ptr<padeBoard> brd = std::get<1>( board); 
+	  if (brd->isMaster()) { 
+
+	    if (readEvents_.count(brd->lastTrigger()) != 0) {
+	      //Get next trigger
+	      triggerCount_ = brd->lastTrigger()+1; 
+	    }
+	    else {
+	      triggerCount_ = brd->lastTrigger(); 
+	    }
+	    fmter % triggerCount_;
+	  	  
+	    msg = fmter.str();
+	    break; 
+	  }
+	}
+	std::cout << msg; 
 	auto fn = [this, msg](const::boost::system::error_code &ec, std::size_t bytes) { 
 	  if (!ec) { 
 		     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::readHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 

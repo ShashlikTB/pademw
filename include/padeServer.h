@@ -12,6 +12,7 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 #include <queue>
+#include <set>
 #include "TString.h"
 #include "TBEvent.h"
 #include "TTree.h"
@@ -36,6 +37,8 @@ class padeServer {
     endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)), f_(file)
 
     {
+      triggerCount_ = 0; 
+      padeListener_.resetSync(); 
     connected_ = false; 
     timeout_ = false; 
     anticipatedPackets_ = 0; 
@@ -73,6 +76,7 @@ class padeServer {
 
   void writeHandler(const::boost::system::error_code &ec, std::size_t bytes);
 
+  shared_ptr<padeBoard> findMaster(); 
 
   void connectHandler(const boost::system::error_code &ec);
 
@@ -93,7 +97,10 @@ class padeServer {
   std::map<std::string, std::function< void() > > callbacks; 
   std::map<unsigned int, shared_ptr<padeBoard> > padeBoards; 
   unsigned int anticipatedPackets_; 
+  std::set<unsigned int> readEvents_; 
+  bool desynced_; 
   bool timeout_; 
+  unsigned short triggerCount_; 
   TFile &f_; 
 
 

@@ -28,6 +28,7 @@ using std::shared_ptr;
 class udpListener { 
   unsigned int anticipatedPackets_; 
   bool running_; 
+  bool desynced_;
   udp::socket sock_; 
   udp::endpoint endpoint_; 
   std::function<void ()> tcpCB_; 
@@ -35,15 +36,19 @@ class udpListener {
   unsigned int packetCount_; 
   std::vector<struct padePacket> packets; 
   std::queue< std::array<unsigned char, 270> > unprocessedPackets; 
+  std::map<unsigned int, unsigned int> boardPacketCount; 
+
   void padedataPacketHandler(); 
   void endPacketHandler(); 
   void unknownPacketHandler(); 
+
+
   struct padePacket parsePadePacket(const std::array<unsigned char, 270> &array);
 
 
  public:
 
-   udpListener(boost::asio::io_service& io_service, unsigned short port) : 
+ udpListener(boost::asio::io_service& io_service, unsigned short port) : 
   sock_(io_service, udp::endpoint(udp::v4(), port)), tcpCB_(std::nullptr_t())
     { 
       running_ = false; 
@@ -53,6 +58,17 @@ class udpListener {
     }
 
   std::vector<struct padePacket> & Packets() { return packets; }; 
+  void clearBoardCount(unsigned int boardID) { 
+    boardPacketCount[boardID] = 0; 
+  }
+
+  void setBoardCount(unsigned int boardID, unsigned int count) { 
+    boardPacketCount[boardID] = count; 
+  }
+
+  unsigned int boardCount(unsigned int boardID) { 
+    return boardPacketCount[boardID]; 
+  }
 
   void packetHandler(const::boost::system::error_code &ec, std::size_t bytes);
 
@@ -61,7 +77,8 @@ class udpListener {
 
 
   void stopListener();
-  
+  bool desynced() { return desynced_; }; 
+  void resetSync() { desynced_ = false; }; 
   bool running() { return running_; }; 
   void setCallback(std::function<void ()> fn) { tcpCB_ = fn; }; 
 

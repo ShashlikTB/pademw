@@ -14,7 +14,7 @@ include_directories(${include_directories} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_C
 link_directories($ENV{GMOCK_HOME}/mybuild $ENV{GMOCK_HOME}/gtest/mybuild ${ROOTLDIR} )
 find_library(TB_LIBRARY TB ${CMAKE_SOURCE_DIR}/shared)
 
-add_definitions(-std=c++0x -ggdb -fPIC )
+add_definitions(-std=c++0x -ggdb -fPIC  )
 set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS} -DQT_NO_KEYWORDS")
 
 
