@@ -40,7 +40,11 @@ void padeServer::padePacketProcessing() {
     padeListener_.resetSync(); 
     std::vector<struct padePacket> &packets = padeListener_.Packets(); 
     addPacketsToBoards(packets); 
+    //Wait for server to get ready 
+    //boost::asio::deadline_timer shortWait(service_, boost::posix_time::microseconds(100)); 
+    //    shortWait.wait(); 
 
+				    
     /* std::cout << "Board List" << std::endl; 
     for (auto pair : padeBoards) { 
       std::cout << "ID:" << std::get<0>(pair) << " Packets in Events "; 
@@ -74,7 +78,7 @@ void padeServer::padePacketProcessing() {
     */
     std::cout << "Clearing boards" << std::endl; 
 
-    padeBoards.clear(); 
+    clearEvents(); 
 
 
   }
@@ -127,6 +131,9 @@ void padeServer::statusHandler(const boost::system::error_code &ec, std::size_t 
 	  if (padeBoards.count(brd->id()) == 0) { 
 	    padeBoards[brd->id()] = brd; 
 	  }
+	  else { 
+	    padeBoards[brd->id()]->updatePadeBoard(part); 
+	  }
 	  anticipatedPackets_ += 33; 
 	  std::cout << std::dec << "Current Anticipated Packets: " << anticipatedPackets_ << std::endl; 
 	  std::cout << std::dec << "Found a board: " << brd->id() << std::endl; 
@@ -170,10 +177,13 @@ void padeServer::statusHandler(const boost::system::error_code &ec, std::size_t 
 
 
 void padeServer::clearHandler(const::boost::system::error_code &ec, std::size_t bytes) { 
+  if (ec) { 
+    std::cout << "Error in receive" << std::endl; 
+  }
     if (!ec) { 
-      //      std::cout << "Read:" << bytes << " bytes. " << std::endl; 
+      //      std::cout << "Clear:" << bytes << " bytes. " << std::endl; 
       std::string line(recv_.data()); 
-
+      //      std::cout << "clear line:" << line << std::endl; 
       recv_.fill(0); 
       boost::algorithm::trim(line); 
       if (boost::algorithm::contains(line, "clear")) { 

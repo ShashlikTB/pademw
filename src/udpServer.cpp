@@ -56,7 +56,7 @@ void udpListener::packetHandler(const::boost::system::error_code &ec, std::size_
     }
     else if (anticipatedPackets_ == 0) { 
       running_ = false; 
-      //      std::cout << "We've received the expected number of packets" << std::endl; 
+      std::cout << "We've received the expected number of packets" << std::endl; 
       if (tcpCB_ != std::nullptr_t()) { 
 	tcpCB_(); 
 	

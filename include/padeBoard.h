@@ -46,6 +46,12 @@ class padeBoard {
   unsigned int eventCount() { return events.size(); }; 
 
 
+  void updatePadeBoard(const std::string &msg); 
+
+  void clearEvents() { 
+    events.clear(); 
+  }
+
   void addEvent(unsigned int key, struct padePacket &pkt) { 
     if (events.count(key) == 0) { 
       events[key] = std::vector<struct padePacket>(); 
@@ -53,6 +59,7 @@ class padeBoard {
     std::vector<struct padePacket> &packets = events[key]; 
     packets.push_back(pkt); 
   }
+
   std::vector<padePacket> &getEvent(unsigned int key) { 
     return events[key]; 
   }

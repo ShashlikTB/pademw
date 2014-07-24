@@ -101,7 +101,7 @@ class serverResponder:
             event = self.events[ev]
             for packet in event: 
                 self.udpSocket.send(packet)
-                time.sleep(0.0004)
+#                time.sleep(0.0001)
         except Exception as e:
             print e
                 
@@ -170,7 +170,6 @@ def server(conn, addr):
                 if action.find('read') != -1: 
                     i += 1
                     eventNumber = int(data.strip().split(' ')[1], 10)
-                    conn.sendall('read\r\n')
                     responder.sendfakePadePackets(eventNumber)
                     for pade in responder.pades:
                         pade.lastTrig = hex(eventNumber)

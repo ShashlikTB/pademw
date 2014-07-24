@@ -50,10 +50,11 @@ class padeServer {
 	std::cout << "Excess stuff " << std::string(recv_.data()) << std::endl; 
 	recv_.fill(0); 
       }
+      padePacketProcessing(); 
       sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), boost::bind(&padeServer::writeHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
       sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::clearHandler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
       timer_.cancel(); 
-      padePacketProcessing(); 
+
 
     }; 
 
@@ -84,6 +85,15 @@ class padeServer {
 
 
  private:
+
+  void clearEvents() { 
+    for (auto brd : padeBoards) { 
+
+      std::get<1>(brd)->clearEvents(); 
+
+    }
+
+  }
 
   boost::asio::io_service &service_; 
   tcp::socket sock_; 
