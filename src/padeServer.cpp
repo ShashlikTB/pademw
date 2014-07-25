@@ -12,7 +12,7 @@ void padeServer::startSpill() {
     sock_.async_connect(endpoint_, boost::bind(&padeServer::connectControl, this, boost::asio::placeholders::error)); 
   }
   else { 
-    //Check for Life 
+    //Check for Life, clear buffers
     sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), whFn);
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::livingControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
   }
@@ -34,6 +34,25 @@ void padeServer::connectControl(const boost::system::error_code &ec)  {
   }
 
 }
+
+
+
+void padeServer::livingControl(const::boost::system::error_code &ec, std::size_t bytes) { 
+    if (!ec) { 
+      std::string clearMsg(recv_.data()); 
+      recv_.fill(0); 
+      if (!(boost::algorithm::contains(clearMsg, "clear"))) { 
+	  std::cout << "Bad response from Control Server...trying again" << std::endl; 
+	  startSpill(); 
+      }
+      std::cout << "Pade Control Server is alive!" << std::endl; 
+      std::cout << "Getting # and Status of Pade Boards!" << std::endl;
+      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
+      sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::statusControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+    }
+
+}
+
 
 void padeServer::parseStatusMessage(const std::string &status) { 
 
@@ -103,22 +122,6 @@ void padeServer::clearPackets() {
 }
 
 
-void padeServer::livingControl(const::boost::system::error_code &ec, std::size_t bytes) { 
-    if (!ec) { 
-      std::string clearMsg(recv_.data()); 
-      recv_.fill(0); 
-      if (!(boost::algorithm::contains(clearMsg, "clear"))) { 
-	  std::cout << "Bad response from Control Server...trying again" << std::endl; 
-	  startSpill(); 
-      }
-      std::cout << "Pade Control Server is alive!" << std::endl; 
-      std::cout << "Getting # and Status of Pade Boards!" << std::endl;
-      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
-      sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::statusControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-    }
-
-}
-
 
 void padeServer::statusControl(const::boost::system::error_code &ec, std::size_t bytes) {
     if (!ec) { 
@@ -126,8 +129,6 @@ void padeServer::statusControl(const::boost::system::error_code &ec, std::size_t
       std::string line(recv_.data()); 
       recv_.fill(0); 
 
-      //Should probably have some kind of reattempt flow control that works cleaner
-      //When I get a chance (Hah!) I'll try to change things around 
       if (boost::algorithm::contains(line, "Master") && line.size() > 10) { 
 	//Status message 
 	parseStatusMessage(line); 
@@ -140,6 +141,13 @@ void padeServer::statusControl(const::boost::system::error_code &ec, std::size_t
 	      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
 	    }
 	    //Armed the Pade Boards, wait for spill to complete, will eventually come from the wire chamber data 
+
+	    sock_.async_write_some(boost::asio::buffer(std::string("trig\r\n")), whFn); 
+	    sock_.async_write_some(boost::asio::buffer(std::string("trig\r\n")), whFn); 
+	    sock_.async_write_some(boost::asio::buffer(std::string("trig\r\n")), whFn); 
+	    sock_.async_write_some(boost::asio::buffer(std::string("trig\r\n")), whFn); 
+	    sock_.async_write_some(boost::asio::buffer(std::string("trig\r\n")), whFn); 
+	    sock_.async_receive(boost::asio::buffer(recv_), [this](const boost::system::error_code &ec, std::size_t bytes) { recv_.fill(0); }); 
 	    boost::asio::deadline_timer waitForSpillCompletion(service_, boost::posix_time::seconds(5)); 
 	    waitForSpillCompletion.async_wait(boost::bind(&padeServer::endSpill, this, boost::asio::placeholders::error)); 
 	    
@@ -202,10 +210,10 @@ void padeServer::packetLoop(const boost::system::error_code &ec, std::size_t byt
     return; 
   }
 
-  std::string clearMsg(recv_.data()); 
+  std::string statusMsg(recv_.data()); 
   recv_.fill(0); 
 
-  if (boost::algorithm::contains(clearMsg, "clear")) {
+  if (boost::algorithm::contains(statusMsg, "Master")) {
     sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
     sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::dataPacketControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 
@@ -303,8 +311,8 @@ void padeServer::processPackets() {
     if (triggerCount_ < master->availableTriggers()) { 
       std::cout << master->availableTriggers()-triggerCount_ << " triggers available" << std::endl; 
       std::cout << "Master Avalible:" << master->availableTriggers() << " Trigger Count " << triggerCount_ << std::endl; 
-      sock_.async_write_some(boost::asio::buffer(std::string("clear\r\n")), whFn); 
-      sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::packetLoop, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
+      sock_.async_receive(boost::asio::buffer(recv_), boost::bind(&padeServer::dataPacketControl, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
     }
     else {
       std::cout << "We've gotten all available triggers!" << std::endl; 
