@@ -5,8 +5,10 @@
 
 void padeServer::startSpill() { 
 
+  std::cout << "Starting spill" << std::endl; 
 
   if (!connected_)  {
+    std::cout << "Not Connected, attempting to connect" << std::endl; 
     sock_.async_connect(endpoint_, boost::bind(&padeServer::connectControl, this, boost::asio::placeholders::error)); 
   }
   else { 
@@ -17,9 +19,16 @@ void padeServer::startSpill() {
   
 } 
 
-
 void padeServer::connectControl(const boost::system::error_code &ec)  {
-  if (!ec) { 
+  if (ec) { 
+    std::cout << "Failed to connect: " << ec << std::endl; 
+    sock_.close(); 
+    boost::asio::deadline_timer retryTimeout(service_, boost::posix_time::seconds(4)); 
+    std::cout << "Retrying in 4 seconds: " << ec << std::endl; 
+    std::function<void (const boost::system::error_code &ec)> retryFn = [this](const boost::system::error_code &ec) { startSpill(); }; 
+    retryTimeout.async_wait(retryFn); 
+  }
+  else { 
     connected_ = true; 
     startSpill(); 
   }
@@ -131,8 +140,8 @@ void padeServer::statusControl(const::boost::system::error_code &ec, std::size_t
 	      sock_.async_write_some(boost::asio::buffer(std::string("status\r\n")), whFn); 
 	    }
 	    //Armed the Pade Boards, wait for spill to complete, will eventually come from the wire chamber data 
-	    boost::asio::deadline_timer waitForSpill(service_, boost::posix_time::seconds(5)); 
-	    waitForSpill.async_wait(boost::bind(&padeServer::endSpill, this, boost::asio::placeholders::error)); 
+	    boost::asio::deadline_timer waitForSpillCompletion(service_, boost::posix_time::seconds(5)); 
+	    waitForSpillCompletion.async_wait(boost::bind(&padeServer::endSpill, this, boost::asio::placeholders::error)); 
 	    
 	  }
 	}; 
@@ -186,8 +195,10 @@ void padeServer::packetLoop(const boost::system::error_code &ec, std::size_t byt
 
   std::cout << "Packet Loop" << std::endl; 
   if (ec) { 
-    std::cout << "May have lost connection or other socket problem: data packet control" << std::endl; 
+    std::cout << "May have lost connection or other socket problem: packet loop" << std::endl; 
     finished(); 
+    connected_ = false; 
+    sock_.close(); 
     return; 
   }
 
@@ -206,6 +217,7 @@ void padeServer::dataPacketControl(const boost::system::error_code &ec, std::siz
 
   if (ec) { 
     std::cout << "May have lost connection or other socket problem: data packet control" << std::endl; 
+    connected_ = false; 
     finished(); 
   }
 
@@ -309,13 +321,14 @@ void padeServer::finished() {
 
   std::cout << "Filling TTree" << std::endl; 
 
-  static TTree *tree = new TTree("t1041", "T1041"); 
+  TTree *tree = new TTree("t1041", "T1041"); 
   TBEvent event; 
   TBSpill spill; 
   TBranch *tbevt = tree->Branch("tbevent", "TBEvent", &event, 64000, 0); 
   TBranch *tbspill = tree->Branch("tbspill", "TBSpill", &spill, 64000, 0); 
   timeval tim; 
   gettimeofday(&tim, NULL); 
+  std::cout << "Current Spill " << currentSpill_ << std::endl; 
   spill.SetSpillData(currentSpill_, tim.tv_usec, 0, 0, 0, 0, -1, -1, 50.0, 50.0); 
   tbspill->Fill(); 
   
@@ -333,11 +346,20 @@ void padeServer::finished() {
     event.Reset(); 
   }
     //    tree->Write(); 
-    //    f_.Write(); 
+  f_.Write(); 
 
     std::cout << "Clearing boards" << std::endl; 
 
     clearEvents(); 
+    timer_.expires_from_now(roughDeltaNSpill_); 
+    auto timeoutfn = [this](const boost::system::error_code &ec) { 
+      if (!ec) { 
+	  //	  padeListener_.stopListener(); 
+	  startSpill(); 
+	}
+      }; 
+    std::cout << "Waiting for next spill...." << std::endl; 
+    timer_.async_wait(timeoutfn); 
 
 }
 
@@ -376,5 +398,9 @@ void padeServer::writeHandler(const::boost::system::error_code &ec, std::size_t 
     if (!ec) { 
       std::cout << "Wrote: " << bytes << " bytes. " << std::endl; 
       
+    }
+    else { 
+      std::cout << "Error writing to socket, Boost Error:" << ec << std::endl; 
+
     }
   }

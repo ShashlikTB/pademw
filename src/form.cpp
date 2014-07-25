@@ -23,7 +23,7 @@ void MyForm::startButton_ServerRunner() {
   }
   else { 
     std::cout << "Running server" << std::endl; 
-    timer_->start(100); 
+    timer_->start(1); 
     status_ = true; 
     startButton->setText("Running"); 
   }

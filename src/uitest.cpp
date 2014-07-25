@@ -2,34 +2,8 @@
 #include <iostream>
  
 #include "form.h"
+#include "padeServer.h"
 
-
-
- 
-class printer { 
-
-public:
-  printer(boost::asio::io_service &service, boost::posix_time::seconds s) : timer_(service, boost::posix_time::seconds(s)), count_(0) {
-    timer_.async_wait(boost::bind(&printer::print, this)); 
-
-  }
-
-  ~printer() { 
-    std::cout << "Final Count: " << count_ << std::endl; 
-  }
-  
-  void print() {
-      std::cout << "Fired! " << count_ << std::endl; 
-      ++count_; 
-      timer_.expires_at(timer_.expires_at()+boost::posix_time::seconds(1)); 
-      timer_.async_wait(boost::bind(&printer::print, this)); 
-      
-  }
-
-private: 
-  boost::asio::deadline_timer timer_; 
-  int count_; 
-}; 
 
 
  
@@ -46,11 +20,12 @@ int main(int argc, char *argv[])
 
   form.show();
  
+  std::string address = "127.0.0.1"; 
+  unsigned int clientPort = 23; 
 
-  printer printing(mainThreadService, boost::posix_time::seconds(1)); 
-	      
-
-
+  TFile file("test.root", "RECREATE"); 
+  padeServer server(mainThreadService, address, clientPort, file); 
+  server.startSpill(); 
 
 
   return app.exec();

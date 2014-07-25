@@ -46,6 +46,7 @@ void udpListener::packetHandler(const::boost::system::error_code &ec, std::size_
       if (boardPacketCount[pkt.boardID] != pkt.pktCount) { 
 	std::cout << "Caution! Packet Count Desynced! ID:" << pkt.boardID << " Internal:" << boardPacketCount[pkt.boardID] << " External: " << pkt.pktCount << std::endl; 
 	desynced_ = true; 
+	boardPacketCount[pkt.boardID] = pkt.pktCount; 
 
       }
       boardPacketCount[pkt.boardID]++; 

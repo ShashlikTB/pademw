@@ -20,6 +20,8 @@ set(CMAKE_CXX_FLAGS "${CMAXE_CXX_FLAGS} -m64 -Wall ${ROOTCFLAGS} -DQT_NO_KEYWORD
 
 set(uitestsources
 	src/padeBoard.cpp
+	src/padeServer.cpp
+	src/udpServer.cpp
 	src/uitest.cpp
 	src/form.cpp)
 
@@ -29,6 +31,11 @@ set(padeserversources
 	src/padeServer.cpp
 	src/udpServer.cpp
 	src/padeServerTest.cpp)	
+
+set(wctestsources
+  src/wc.cpp
+  src/wcTest.cpp)
+
 
 
 QT5_WRAP_UI(UISrcs src/form.ui)
@@ -53,3 +60,10 @@ target_link_libraries(padeServerTest boost_thread)
 target_link_libraries(padeServerTest boost_regex)		
 target_link_libraries(padeServerTest ${ROOTLIBS})
 target_link_libraries(padeServerTest ${TB_LIBRARY})
+
+add_executable(wctest ${wctestsources})
+target_link_libraries(wctest pthread)
+target_link_libraries(wctest event)
+target_link_libraries(wctest boost_system)
+target_link_libraries(wctest boost_thread)
+target_link_libraries(wctest boost_regex)		

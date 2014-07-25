@@ -34,9 +34,10 @@ class padeServer {
 
  public: 
  padeServer(boost::asio::io_service &service, const std::string &address, unsigned short tcpport, TFile &file) : service_(service), sock_(service), 
-    endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)), f_(file)
+    endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)), f_(file), roughDeltaNSpill_( boost::posix_time::seconds(40)) 
 
     {
+
       triggerCount_ = 0; 
       padeListener_.resetSync(); 
       currentSpill_ = 0; 
@@ -103,6 +104,8 @@ class padeServer {
   boost::asio::deadline_timer timer_; 
   udpListener padeListener_; 
   boost::posix_time::seconds timeoutLen_; 
+  TFile &f_; 
+  boost::posix_time::seconds roughDeltaNSpill_; 
   bool connected_; 
 
   std::array<char, 512> recv_; 
@@ -112,7 +115,7 @@ class padeServer {
   bool desynced_; 
   bool timeout_; 
   unsigned short triggerCount_; 
-  TFile &f_; 
+
   std::function<void (const::boost::system::error_code &ec, std::size_t bytes)> whFn; 
 
   unsigned int currentSpill_; 

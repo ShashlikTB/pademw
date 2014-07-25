@@ -153,7 +153,15 @@ def server(conn, addr):
     pades.append(padeBoard('Master'))
     for i in range (0,3): 
         pades.append(padeBoard('Slave'))
+    
+    pades[0].bid = hex(112)[2:]
+    pades[1].bid = hex(113)[2:]
+    pades[2].bid = hex(115)[2:]
+    pades[3].bid = hex(116)[2:]
 
+
+
+        
     responder = serverResponder(pades, 301)
     i = 0
     while 1: 
