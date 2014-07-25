@@ -22,6 +22,7 @@ set(uitestsources
 	src/padeBoard.cpp
 	src/padeServer.cpp
 	src/udpServer.cpp
+	src/wc.cpp
 	src/uitest.cpp
 	src/form.cpp)
 
@@ -30,6 +31,7 @@ set(padeserversources
 	src/padeBoard.cpp
 	src/padeServer.cpp
 	src/udpServer.cpp
+	src/wc.cpp
 	src/padeServerTest.cpp)	
 
 set(wctestsources

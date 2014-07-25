@@ -20,10 +20,34 @@ using boost::asio::ip::tcp;
 using std::shared_ptr; 
 
 
+
+class sharedWCData { 
+
+  boost::mutex guard; 
+  unsigned int time_; 
+  bool inSpill_; 
+  
+
+ public: 
+
+  sharedWCData() { }; 
+
+
+  bool inSpill(bool spill); 
+  bool inSpill(); 
+  unsigned int beamTime(); 
+  unsigned int beamTime(unsigned int bT); 
+  
+
+
+
+}; 
+
 class wireChamberClient { 
 
 
   std::function<void (const boost::system::error_code &ec, std::size_t bytes)> wrFn; 
+
   boost::asio::io_service &service_; 
   tcp::socket sock_; 
   tcp::resolver resolver_; 
@@ -33,12 +57,16 @@ class wireChamberClient {
   bool connected_; 
 
   std::array<char, 512> recv_; 
+  sharedWCData &wcStatus_; 
+  boost::asio::deadline_timer reset_; 
 
 
  public: 
- wireChamberClient(boost::asio::io_service &service, const std::string &address, const std::string& tcpport) : service_(service), sock_(service), 
-    resolver_(service), address_(address), port_(tcpport), query_(address_, port_) { 
+ wireChamberClient(boost::asio::io_service &service, const std::string &address, const std::string& tcpport, sharedWCData &wcStatus) : service_(service), sock_(service), 
+    resolver_(service), address_(address), port_(tcpport), query_(address_, port_), wcStatus_(wcStatus), reset_(service) { 
     connected_ = false; 
+    wcStatus_.inSpill(false); 
+    wcStatus_.beamTime(0); 
 
     wrFn = [this](const boost::system::error_code &ec, std::size_t bytes) { 
       if (ec) { 

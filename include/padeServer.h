@@ -11,12 +11,16 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
+#include <boost/thread.hpp>
 #include <queue>
 #include <set>
 #include "TString.h"
 #include "TBEvent.h"
 #include "TTree.h"
 #include "TFile.h"
+
+#include "wc.h"
+
 #include <string>
 #include <functional>
 using boost::asio::ip::udp; 
@@ -33,8 +37,8 @@ class padeServer {
 
 
  public: 
- padeServer(boost::asio::io_service &service, const std::string &address, unsigned short tcpport, TFile &file) : service_(service), sock_(service), 
-    endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)), f_(file), roughDeltaNSpill_( boost::posix_time::seconds(40)) 
+ padeServer(boost::asio::io_service &service, const std::string &address, unsigned short tcpport, TFile &file, sharedWCData &wc) : service_(service), sock_(service), 
+    endpoint_(tcp::endpoint(boost::asio::ip::address::from_string(address), tcpport)), timer_(service, boost::posix_time::seconds(5)), padeListener_(service, 21331), timeoutLen_(boost::posix_time::seconds (5)), f_(file), roughDeltaNSpill_( boost::posix_time::seconds(40)), wcStatus_(wc)
 
     {
 
@@ -119,6 +123,7 @@ class padeServer {
   std::function<void (const::boost::system::error_code &ec, std::size_t bytes)> whFn; 
 
   unsigned int currentSpill_; 
+  sharedWCData &wcStatus_; 
 
 }; 
 
