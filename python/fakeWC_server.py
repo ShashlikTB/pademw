@@ -19,8 +19,8 @@ def wcServer(socket):
   while 1:
     
     data = socket.recv()
-    print "Received data: ", data
-    time.sleep(1)
+    #print "Received data: ", data
+    #time.sleep(1)
 
     if not data: 
             print "Lost connection" 
@@ -37,7 +37,7 @@ def wcServer(socket):
         else:
             response = "%s\r\n" % fn()
  
-        time.sleep(1)
+        #time.sleep(1)
         socket.send(response)
 
 
