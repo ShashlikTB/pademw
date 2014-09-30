@@ -48,6 +48,8 @@ def wcServer(socket):
         print e 
 
 
+
+
 port = "5001"
 context = zmq.Context()
 socket = context.socket(zmq.REP)
